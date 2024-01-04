@@ -27,8 +27,9 @@ load_dotenv()
 # 환경 변수 사용
 ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
 SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-ERROR_LOG_FILE = os.getenv('ERROR_LOG_FILE')
-IP_LOG_FILE = os.getenv('IP_LOG_FILE')
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+ERROR_LOG_FILE = os.path.join(ROOT_DIR, '테스트 결과물 샘플', os.getenv('ERROR_LOG_FILE')) # TODO: 최종 로그 저장 위치 바꾸기
+IP_LOG_FILE = os.path.join(ROOT_DIR, '테스트 결과물 샘플', os.getenv('IP_LOG_FILE'))
 
 class ZapposSoupTest(bs):
 	'''
@@ -120,8 +121,7 @@ class ZapposSoupTest(bs):
 					index -= 1
 				append_code = url[-1] + url[index]
 				# cur_directory = os.getcwd()
-				script_dir = os.path.dirname(os.path.realpath(__file__))
-				file_path = os.path.join(script_dir, f'res_GoogleSheetsTest_{append_code}.pickle')
+				file_path = os.path.join(ROOT_DIR, f'res_GoogleSheetsTest_{append_code}.pickle')
 				with open(file_path, 'wb') as f:
 					pickle.dump(response, f)
 					print('Successfully saved HTTP response----------')
@@ -134,8 +134,7 @@ class ZapposSoupTest(bs):
 					index -= 1
 				append_code = url[-1] + url[index]
 				# cur_directory = os.getcwd()
-				script_dir = os.path.dirname(os.path.realpath(__file__))
-				file_path = os.path.join(script_dir, f'res_GoogleSheetsTest_{append_code}.pickle')				
+				file_path = os.path.join(ROOT_DIR, f'res_GoogleSheetsTest_{append_code}.pickle')				
 				with open(file_path, 'rb') as f:
 					response = pickle.load(f)
 					if (response.status_code == 200):
@@ -678,8 +677,7 @@ class GoogleSheetsTest():
 	def set_google_client(self):
 		# cur_directory = os.getcwd()
 		# print(cur_directory)
-		script_dir = os.path.dirname(os.path.realpath(__file__))
-		file_path = os.path.join(script_dir, 'python-crawling-gspread-145332f402e3.json')
+		file_path = os.path.join(ROOT_DIR, 'python-crawling-gspread-145332f402e3.json')
 		gc = gspread.service_account(filename=file_path)
 		self.google_client = gc
 	def set_sh(self):

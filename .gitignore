@@ -1,3 +1,8 @@
+# 진짜 존재하는 파일 중 무시할 것(밑의 항목과 중복도 존재):
+.env
+python-crawling-gspread-*.json
+*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

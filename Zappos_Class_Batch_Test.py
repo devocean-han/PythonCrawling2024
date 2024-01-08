@@ -40,12 +40,12 @@ class ZapposSoupTest(bs):
 		'''
 		url: 스크래핑할 페이지 url
 		isTesting: False면 응답 객체를 파일로 저장하지 않음
-		size_type: 1(한국 사이즈로 변환 필요), 2(영문 사이즈 그대로 사용 가능)
+		size_type: 1(한국 사이즈로 변환 필요), 2(영문 사이즈 그대로 사용 가능), 3(키즈 신발)
 		ip_rotator: IP 우회 게이트웨이와 세션을 가지는 클래스. 이 세션을 통해 get() 요청을 보내면 IP가 우회된다.
 		'''
 		# 디폴트 샘플: isTesting=False, size_type=2
 		self.url = url
-		self.size_type = size_type # 1: 한국 사이즈로 변환 필요 / 2: 영문 사이즈 그대로 사용
+		self.size_type = size_type # 1: 한국 사이즈로 변환 필요 / 2: 영문 사이즈 그대로 사용 / 3: 키즈 신발
 		self.r = ip_rotator
 
 		## (추가)다양한 사용자 에이전트를 사용하여 크롤러를 "인간처럼" 보이게 만들기:
@@ -134,15 +134,19 @@ class ZapposSoupTest(bs):
 					index -= 1
 				append_code = url[-1] + url[index]
 				# cur_directory = os.getcwd()
-				file_path = os.path.join(ROOT_DIR, f'res_GoogleSheetsTest_{append_code}.pickle')				
+				file_path = os.path.join(ROOT_DIR, '테스트 결과물 샘플', f'res_kids_shoes_{append_code}.pickle')				
 				with open(file_path, 'rb') as f:
 					response = pickle.load(f)
 					if (response.status_code == 200):
 						print('Successfully loaded HTTP response----------')
 				return response
-			except FileNotFoundError:
+			except FileNotFoundError as e:
 				return test_save_webpage_response(url, headers)
 				# test_load_webpage_response(url, headers)
+			except:
+				print(f'알 수 없는 에러 발생: {e.response.status_code}')
+				raise
+
 		# 2. HTTP 응답 사용하고 버리기
 		## 2-1. 
 		def get_webpage_response(url, headers):
@@ -400,10 +404,18 @@ class ZapposSoupTest(bs):
 			return True
 		else:
 			return False
+	def is_toddler(self):
+		''' "Infant Size" 혹은 "Toddler Size"라는 텍스트 요소가 있을 것이라고 가정 '''
+		kids_age_legend_tag = self.soup.select_one('legend[id="sizingChooser"]')
+		if 'infant' in kids_age_legend_tag.text.lower() or'toddler' in kids_age_legend_tag.text.lower():
+			return True
+		else:
+			return False
+
 	def trim_valid_size_tags(self, input_tags, is_womens):
 		''' 남성 신발: 7.0(250mm) ~ 14.0(320mm)까지 유효.
 			여성 신발: 5.0(220mm) ~ 11.0(280mm)까지 유효.
-			유효 사이즈만 한국 사이즈로 변환하여 반환
+			유효 사이즈만 태그 그대로 반환
 			(유효 사이즈를 벗어나는 옵션들은 4/15 계산의 분모, 분자에 모두 셈하지 않게 된다)
 		'''
 		valid_tags = []
@@ -415,6 +427,23 @@ class ZapposSoupTest(bs):
 			elif is_womens is False and float(size) in self.size_tables['shoes']['mens']:
 				valid_tags.append(input)
 		return valid_tags
+	def trim_valid_kids_size_tags(self, input_tags, is_toddler):
+		''' Toddler(Infant포함): 7.0(130mm) ~ 10.0(160mm)까지 유효.
+			Little Kid: 		10.5(165mm) ~ 3.0(220mm)까지 모두 유효.
+			Big Kid: 			3.5(225mm) ~ 6.0(250mm)까지 유효.
+			즉 7.0 이상인 'toddler'와, 6.5 혹은 7.0이 아닌 'not toddler' 사이즈만 태그 그대로 반환
+		'''
+		# 만약 전체 사이즈를 대상으로 한다면 is_toddler('infant'나 'toddler'라는 글자가 있는가)로 1~7.0까지 갈라낼 수 있을 것.
+		# 하지만 7.0 ~ 6.0으로 잘라야 하므로, is_toddler이고 7.0 이상이거나 not is_toddler이고 6.0 이하일 때만 유효 사이즈로 삼아야 한다 => 안된다. little에는 10.0같은 수도 있어야 하므로... 그냥 6.5와 7.0만 명시적으로 빼자
+		valid_tags = []
+		for input in input_tags:
+			size = float(input['data-label'])
+			if is_toddler is True and size >= 7.0: # infant & toddler
+				valid_tags.append(input)
+			elif is_toddler is False and size != 6.5 and size != 7.0:
+				valid_tags.append(input)
+		return valid_tags
+
 	def trim_instock_size_tags(self, valid_size_tags):
 		''' 사이즈 태그 리스트 중 '재고 있음'인 태그만 모아 반환 '''
 		instock_tags = []
@@ -437,6 +466,16 @@ class ZapposSoupTest(bs):
 			else:
 				sizes_transformed.append(self.size_tables['shoes']['mens'][size])
 		return sizes_transformed
+	def extract_kids_sizes_and_transform(self, instock_size_tags):
+		# TODO: 후에 size_table에 겹치는 아동 신발 사이즈가 존재하게 될 경우 이 코드도 수정해야 함
+		sizes_original = []
+		sizes_transformed = []
+		for tag in instock_size_tags:
+			size = float(tag['data-label'])
+			sizes_original.append(size)
+			sizes_transformed.append(self.size_tables['shoes']['kids'][size])
+		print(sizes_original)
+		return sizes_transformed
 	def extract_sizes(self, instock_size_tags):
 		return [tag['data-label'] for tag in instock_size_tags]
 	
@@ -449,17 +488,9 @@ class ZapposSoupTest(bs):
 			# 사이즈 변환 전역 변수를 세팅하고, 사이즈 태그를 가져오고  너무 크거나 작은 사이즈는 쳐내고 또 품절 아닌 항목만 다시 뽑고 거기서 사이즈 데이터 자체를 가져와 변환한다.
 			self.set_size_tables()
 			raw_tags = self.get_size_tags()
-			print()
-			print('raw_tags: ', len(raw_tags))
 			is_womens = self.is_womens()
-			print()
-			print('is_womens: ', is_womens)
 			valid_tags = self.trim_valid_size_tags(raw_tags, is_womens)
-			print()
-			print('valid_tags: ', len(valid_tags))
 			instock_tags = self.trim_instock_size_tags(valid_tags)
-			print()
-			print('instock_tags: ', len(instock_tags))
 			result_sizes = self.extract_sizes_and_transform(instock_tags, is_womens)
 			print()
 			print(result_sizes)
@@ -474,6 +505,18 @@ class ZapposSoupTest(bs):
 			print(result_sizes)
 			print()
 			self.options_size = result_sizes
+		elif self.size_type == 3: # 키즈 신발 타입
+			# 사이즈표 전역 변수를 세팅하고, 사이즈 태그를 가져오고, 유아7~큰아동6까지 범위 밖의 사이즈는 져내고, 거기서 품절 아닌 항목만 뽑아 변환한다
+			self.set_size_tables()
+			raw_tags = self.get_size_tags()
+			is_toddler = self.is_toddler()
+			valid_tags = self.trim_valid_kids_size_tags(raw_tags, is_toddler)
+			instock_tags = self.trim_instock_size_tags(valid_tags)
+			result_sizes = self.extract_kids_sizes_and_transform(instock_tags)
+			print()
+			print(result_sizes)
+			self.options_size = result_sizes
+
 
 	def set_options_size_text(self):
 		self.options_size_text = ','.join(str(size) for size in self.options_size)
@@ -513,9 +556,43 @@ class ZapposSoupTest(bs):
 			10.5: 275,
 			11.0: 280,
 		}
+		shoe_kids_size = { # 추후 toddler(infant포함): {}, little: {}, big: {}로 나누기
+			# infants: 1,2,3
+			# toddlers: 4, 5, 5.5, 6.0, 6.5 ... , 10.0
+			# little kids: 10.5, 11.0, 11.5, ... 13.5, 1.0, 1.5, ... , 3.0
+			# big kids: 3.5, 4.0, ... , 7.0
+			7.0: 130,
+			7.5: 135,
+			8.0: 140,
+			8.5: 145,
+			9.0: 150,
+			9.5: 155,
+			10.0: 160,
+			10.5: 165,
+			11.0: 170,
+			11.5: 175,
+			12.0: 180,
+			12.5: 185,
+			13.0: 190,
+			13.5: 195,
+			1.0: 200,
+			1.5: 205,
+			2.0: 210,
+			2.5: 215,
+			3.0: 220,
+			3.5: 225,
+			4.0: 230,
+			4.5: 235,
+			5.0: 240,
+			5.5: 245,
+			6.0: 250, 
+			# 6.5: 255,
+			# 7.0: 260,
+		}
 		self.size_tables['shoes'] = {}
 		self.size_tables['shoes']['mens'] = shoe_mens_size
 		self.size_tables['shoes']['womens'] = shoe_womens_size
+		self.size_tables['shoes']['kids'] = shoe_kids_size
 	
 	# 3-2. 옵션 재고수량
 	def set_options_quantities(self):
@@ -887,7 +964,7 @@ def main():
 			print()
 
 			# 상품 종류 입력받기
-			product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류: ')
+			product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류 3.키즈 신발 : ')
 
 			# 자포스 클래스 생성
 			g.set_ZapposClass(g.url, False, int(product_type), ip_rotator)
@@ -969,7 +1046,7 @@ def main():
 		g = GoogleSheetsTest(sheet_file_name)
 				
 		# 상품 종류 입력받기
-		product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류(품목을 변경하려면 다시 시작하세요): ')
+		product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류 3.키즈 신발 (품목을 변경하려면 다시 시작하세요): ')
 		
 		url_cell = None
 		target_row = None

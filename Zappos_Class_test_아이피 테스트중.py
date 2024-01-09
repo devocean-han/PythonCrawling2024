@@ -27,9 +27,8 @@ load_dotenv()
 # 환경 변수 사용
 ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
 SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
-ERROR_LOG_FILE = os.path.join(ROOT_DIR, '테스트 결과물 샘플', os.getenv('ERROR_LOG_FILE')) # TODO: 최종 로그 저장 위치 바꾸기
-IP_LOG_FILE = os.path.join(ROOT_DIR, '테스트 결과물 샘플', os.getenv('IP_LOG_FILE'))
+ERROR_LOG_FILE = os.getenv('ERROR_LOG_FILE')
+IP_LOG_FILE = os.getenv('IP_LOG_FILE')
 
 class ZapposSoupTest(bs):
 	'''
@@ -40,12 +39,12 @@ class ZapposSoupTest(bs):
 		'''
 		url: 스크래핑할 페이지 url
 		isTesting: False면 응답 객체를 파일로 저장하지 않음
-		size_type: 1(한국 사이즈로 변환 필요), 2(영문 사이즈 그대로 사용 가능), 3(키즈 신발)
+		size_type: 1(한국 사이즈로 변환 필요), 2(영문 사이즈 그대로 사용 가능)
 		ip_rotator: IP 우회 게이트웨이와 세션을 가지는 클래스. 이 세션을 통해 get() 요청을 보내면 IP가 우회된다.
 		'''
 		# 디폴트 샘플: isTesting=False, size_type=2
 		self.url = url
-		self.size_type = size_type # 1: 한국 사이즈로 변환 필요 / 2: 영문 사이즈 그대로 사용 / 3: 키즈 신발
+		self.size_type = size_type # 1: 한국 사이즈로 변환 필요 / 2: 영문 사이즈 그대로 사용
 		self.r = ip_rotator
 
 		## (추가)다양한 사용자 에이전트를 사용하여 크롤러를 "인간처럼" 보이게 만들기:
@@ -121,7 +120,8 @@ class ZapposSoupTest(bs):
 					index -= 1
 				append_code = url[-1] + url[index]
 				# cur_directory = os.getcwd()
-				file_path = os.path.join(ROOT_DIR, f'res_GoogleSheetsTest_{append_code}.pickle')
+				script_dir = os.path.dirname(os.path.realpath(__file__))
+				file_path = os.path.join(script_dir, f'res_GoogleSheetsTest_{append_code}.pickle')
 				with open(file_path, 'wb') as f:
 					pickle.dump(response, f)
 					print('Successfully saved HTTP response----------')
@@ -134,19 +134,16 @@ class ZapposSoupTest(bs):
 					index -= 1
 				append_code = url[-1] + url[index]
 				# cur_directory = os.getcwd()
-				file_path = os.path.join(ROOT_DIR, '테스트 결과물 샘플', f'res_kids_shoes_{append_code}.pickle')				
+				script_dir = os.path.dirname(os.path.realpath(__file__))
+				file_path = os.path.join(script_dir, f'res_GoogleSheetsTest_{append_code}.pickle')				
 				with open(file_path, 'rb') as f:
 					response = pickle.load(f)
 					if (response.status_code == 200):
 						print('Successfully loaded HTTP response----------')
 				return response
-			except FileNotFoundError as e:
+			except FileNotFoundError:
 				return test_save_webpage_response(url, headers)
 				# test_load_webpage_response(url, headers)
-			except:
-				print(f'알 수 없는 에러 발생: {e.response.status_code}')
-				raise
-
 		# 2. HTTP 응답 사용하고 버리기
 		## 2-1. 
 		def get_webpage_response(url, headers):
@@ -157,12 +154,12 @@ class ZapposSoupTest(bs):
 					# response = requests.get("https://example.com")
 					response.raise_for_status()
 					# print("Request successful!")
-					# print(f'"response code": "{response.status_code}"')
-					# print(f'"request object[header]": "{response.request.headers}"')
-					# print(f'"response header": "{response.headers}"')
-					# # 응답 데이터 크기를 확인합니다.
-					# response_size = len(response.content)
-					# print(f'"Response size": "{response_size} bytes"')
+					print(f'response code: {response.status_code}')
+					print(f'request object[header]: {response.request.headers}')
+					print(f'response header: {response.headers}')
+					# 응답 데이터 크기를 확인합니다.
+					response_size = len(response.content)
+					print(f'Response size: {response_size} bytes')
 					return response
 				except requests.exceptions.RequestException as e:
 					if n == 2:
@@ -186,10 +183,10 @@ class ZapposSoupTest(bs):
 		
 		# 'test중' 이면 HTTP 응답을 파일로 저장하고 불러와 실행,
 		if (isTesting is True):
-			self.response = test_load_webpage_response(self.url, self.headers0)
+			self.response = test_load_webpage_response(self.url, self.headers3)
 		# 'test중' 이 아니면 매번 HTTP 요청을 보내며 실행
 		else:
-			self.response = get_webpage_response(self.url, self.headers0)
+			self.response = get_webpage_response(self.url, self.headers3)
 		self.soup = test_parse_response_to_soup(self.response)
 
 		# 1. 상품 타이틀 (브랜드명+색상+상품명+영문상품명)
@@ -207,9 +204,9 @@ class ZapposSoupTest(bs):
 		# self.options_of_this_color = []
 		# self.options_quantity = 51 # 일괄로 51개
 		self.options_size = [] 
-		self.options_quantities = [] 
+		self.options_quantity = [] 
 		self.options_size_text = '' # 3-1 옵션값
-		self.options_quantities_text = '' # 3-2 옵션 재고수량
+		self.options_quantity_text = '' # 3-2 옵션 재고수량
 		self.images_of_this_color = []
 		self.title_image = '' # 4 대표이미지
 		self.description_ko_lines = [] # (현 색상) 설명 문구 리스트
@@ -241,8 +238,8 @@ class ZapposSoupTest(bs):
 		self.set_color_name() 
 		self.set_options_size() # 3-1 옵션값
 		self.set_options_size_text()
-		self.set_options_quantities() # 3-2 옵션 재고수량
-		self.set_options_quantities_text()
+		self.set_options_quantity() # 3-2 옵션 재고수량
+		self.set_options_quantity_text()
 		self.set_images_of_this_color()
 		self.set_title_image() # 4 대표이미지
 		self.set_description_ko_lines() # (현 색상) 설명 문구 리스트
@@ -263,8 +260,8 @@ class ZapposSoupTest(bs):
 
 		print()
 		print('3. 옵션값, 옵션 재고수량')
-		print(self.options_size_text)
-		print(self.options_quantities_text)
+		print(self.options_size)
+		print(self.options_quantity)
 
 		print()
 		print('4. 대표이미지')
@@ -347,8 +344,8 @@ class ZapposSoupTest(bs):
 		return product_name
 		
 	def set_full_title(self):
-		'''브랜드+상품명+영문상품명+색상
-			(현재는 색상 뺌)
+		'''브랜드+색상+상품명+영문상품명
+			(현재는 영문색상으로 넣음)
 		'''
 		self.full_name = self.get_full_name()
 		self.brand_name = self.get_brand_name()
@@ -359,7 +356,7 @@ class ZapposSoupTest(bs):
 		product_name_ko = self.translate(self.product_name)
 		color_name = self.get_color_name()
 		color_name_ko = self.translate(color_name)
-		self.full_title = f'{self.brand_name_ko_no_space} {product_name_ko} {self.product_name}'
+		self.full_title = f'{self.brand_name_ko_no_space} {color_name} {product_name_ko} {self.product_name}'
 
 	def translate(self, text):
 		if (len(text) > 5000):
@@ -404,18 +401,10 @@ class ZapposSoupTest(bs):
 			return True
 		else:
 			return False
-	def is_toddler(self):
-		''' "Infant Size" 혹은 "Toddler Size"라는 텍스트 요소가 있을 것이라고 가정 '''
-		kids_age_legend_tag = self.soup.select_one('legend[id="sizingChooser"]')
-		if 'infant' in kids_age_legend_tag.text.lower() or'toddler' in kids_age_legend_tag.text.lower():
-			return True
-		else:
-			return False
-
 	def trim_valid_size_tags(self, input_tags, is_womens):
 		''' 남성 신발: 7.0(250mm) ~ 14.0(320mm)까지 유효.
 			여성 신발: 5.0(220mm) ~ 11.0(280mm)까지 유효.
-			유효 사이즈만 태그 그대로 반환
+			유효 사이즈만 한국 사이즈로 변환하여 반환
 			(유효 사이즈를 벗어나는 옵션들은 4/15 계산의 분모, 분자에 모두 셈하지 않게 된다)
 		'''
 		valid_tags = []
@@ -427,23 +416,6 @@ class ZapposSoupTest(bs):
 			elif is_womens is False and float(size) in self.size_tables['shoes']['mens']:
 				valid_tags.append(input)
 		return valid_tags
-	def trim_valid_kids_size_tags(self, input_tags, is_toddler):
-		''' Toddler(Infant포함): 7.0(130mm) ~ 10.0(160mm)까지 유효.
-			Little Kid: 		10.5(165mm) ~ 3.0(220mm)까지 모두 유효.
-			Big Kid: 			3.5(225mm) ~ 6.0(250mm)까지 유효.
-			즉 7.0 이상인 'toddler'와, 6.5 혹은 7.0이 아닌 'not toddler' 사이즈만 태그 그대로 반환
-		'''
-		# 만약 전체 사이즈를 대상으로 한다면 is_toddler('infant'나 'toddler'라는 글자가 있는가)로 1~7.0까지 갈라낼 수 있을 것.
-		# 하지만 7.0 ~ 6.0으로 잘라야 하므로, is_toddler이고 7.0 이상이거나 not is_toddler이고 6.0 이하일 때만 유효 사이즈로 삼아야 한다 => 안된다. little에는 10.0같은 수도 있어야 하므로... 그냥 6.5와 7.0만 명시적으로 빼자
-		valid_tags = []
-		for input in input_tags:
-			size = float(input['data-label'])
-			if is_toddler is True and size >= 7.0: # infant & toddler
-				valid_tags.append(input)
-			elif is_toddler is False and size != 6.5 and size != 7.0:
-				valid_tags.append(input)
-		return valid_tags
-
 	def trim_instock_size_tags(self, valid_size_tags):
 		''' 사이즈 태그 리스트 중 '재고 있음'인 태그만 모아 반환 '''
 		instock_tags = []
@@ -466,16 +438,6 @@ class ZapposSoupTest(bs):
 			else:
 				sizes_transformed.append(self.size_tables['shoes']['mens'][size])
 		return sizes_transformed
-	def extract_kids_sizes_and_transform(self, instock_size_tags):
-		# TODO: 후에 size_table에 겹치는 아동 신발 사이즈가 존재하게 될 경우 이 코드도 수정해야 함
-		sizes_original = []
-		sizes_transformed = []
-		for tag in instock_size_tags:
-			size = float(tag['data-label'])
-			sizes_original.append(size)
-			sizes_transformed.append(self.size_tables['shoes']['kids'][size])
-		print(sizes_original)
-		return sizes_transformed
 	def extract_sizes(self, instock_size_tags):
 		return [tag['data-label'] for tag in instock_size_tags]
 	
@@ -488,9 +450,17 @@ class ZapposSoupTest(bs):
 			# 사이즈 변환 전역 변수를 세팅하고, 사이즈 태그를 가져오고  너무 크거나 작은 사이즈는 쳐내고 또 품절 아닌 항목만 다시 뽑고 거기서 사이즈 데이터 자체를 가져와 변환한다.
 			self.set_size_tables()
 			raw_tags = self.get_size_tags()
+			print()
+			print('raw_tags: ', len(raw_tags))
 			is_womens = self.is_womens()
+			print()
+			print('is_womens: ', is_womens)
 			valid_tags = self.trim_valid_size_tags(raw_tags, is_womens)
+			print()
+			print('valid_tags: ', len(valid_tags))
 			instock_tags = self.trim_instock_size_tags(valid_tags)
+			print()
+			print('instock_tags: ', len(instock_tags))
 			result_sizes = self.extract_sizes_and_transform(instock_tags, is_womens)
 			print()
 			print(result_sizes)
@@ -505,18 +475,6 @@ class ZapposSoupTest(bs):
 			print(result_sizes)
 			print()
 			self.options_size = result_sizes
-		elif self.size_type == 3: # 키즈 신발 타입
-			# 사이즈표 전역 변수를 세팅하고, 사이즈 태그를 가져오고, 유아7~큰아동6까지 범위 밖의 사이즈는 져내고, 거기서 품절 아닌 항목만 뽑아 변환한다
-			self.set_size_tables()
-			raw_tags = self.get_size_tags()
-			is_toddler = self.is_toddler()
-			valid_tags = self.trim_valid_kids_size_tags(raw_tags, is_toddler)
-			instock_tags = self.trim_instock_size_tags(valid_tags)
-			result_sizes = self.extract_kids_sizes_and_transform(instock_tags)
-			print()
-			print(result_sizes)
-			self.options_size = result_sizes
-
 
 	def set_options_size_text(self):
 		self.options_size_text = ','.join(str(size) for size in self.options_size)
@@ -556,54 +514,15 @@ class ZapposSoupTest(bs):
 			10.5: 275,
 			11.0: 280,
 		}
-		shoe_kids_size = { # 추후 toddler(infant포함): {}, little: {}, big: {}로 나누기
-			# infants: 1,2,3
-			# toddlers: 4, 5, 5.5, 6.0, 6.5 ... , 10.0
-			# little kids: 10.5, 11.0, 11.5, ... 13.5, 1.0, 1.5, ... , 3.0
-			# big kids: 3.5, 4.0, ... , 7.0
-			7.0: 130,
-			7.5: 135,
-			8.0: 140,
-			8.5: 145,
-			9.0: 150,
-			9.5: 155,
-			10.0: 160,
-			10.5: 165,
-			11.0: 170,
-			11.5: 175,
-			12.0: 180,
-			12.5: 185,
-			13.0: 190,
-			13.5: 195,
-			1.0: 200,
-			1.5: 205,
-			2.0: 210,
-			2.5: 215,
-			3.0: 220,
-			3.5: 225,
-			4.0: 230,
-			4.5: 235,
-			5.0: 240,
-			5.5: 245,
-			6.0: 250, 
-			# 6.5: 255,
-			# 7.0: 260,
-		}
 		self.size_tables['shoes'] = {}
 		self.size_tables['shoes']['mens'] = shoe_mens_size
 		self.size_tables['shoes']['womens'] = shoe_womens_size
-		self.size_tables['shoes']['kids'] = shoe_kids_size
 	
 	# 3-2. 옵션 재고수량
-	def set_options_quantities(self):
-		''' 그냥 11, 22, 33, ...개로 일괄 설정하기 '''
-		if len(self.options_size) <= 9:
-			quantities = [int(str(i) + str(i)) for i in range(1, len(self.options_size) + 1)]
-		else: 
-			quantities = [50 for i in self.options_size]
-		self.options_quantities = quantities
-	def set_options_quantities_text(self):
-		self.options_quantities_text = ','.join(str(size) for size in self.options_quantities)
+	def set_options_quantity(self):
+		self.options_quantity = self.options_size
+	def set_options_quantity_text(self):
+		self.options_quantity_text = self.options_size_text
 	
 	# 상품 이미지 url 추출
 	def get_images_of_this_color(self):
@@ -612,7 +531,7 @@ class ZapposSoupTest(bs):
 		for img in img_tags:
 			if 'srcset' in img.attrs:
 				index = img['src'].find('AC_SR')
-				refined_img = '%sAC_SR800,1500_.jpg' % img['src'][:index]
+				refined_img = '%sAC_SR530,500_.jpg' % img['src'][:index]
 				src_list.append(refined_img)
 		return src_list
 	def set_images_of_this_color(self):
@@ -639,7 +558,7 @@ class ZapposSoupTest(bs):
 	def set_description_ko_lines(self):
 		self.description_ko_lines = self.get_translated_description()
 
-	# 설명 문구 html 만들기 #fontstyle변경 여기서
+	# 설명 문구 html 만들기
 	def make_description_tags(self):
 		''' '설명 문구'당 p 태그 만들기 '''
 		tag_string = ''
@@ -649,7 +568,7 @@ class ZapposSoupTest(bs):
 	
 	# 이미지 html 만들기
 	def make_img_tag(self, img_url):
-		return f'<img src="{img_url}" alt="{self.brand_name_ko_no_space}">'
+		return f'<img src="{img_url}">'
 	def make_img_tags(self):
 		''' 이미지당 img 태그 만들기 '''
 		tag_string = ''
@@ -661,20 +580,20 @@ class ZapposSoupTest(bs):
 	def make_html_of_this_color(self):
 		ko_description_detail = self.make_description_tags()
 		product_images = self.make_img_tags()
-		# 상세페이지 순서
 		html = f'''<center style="width: 80%; margin: 0 auto;">
-	<img src="https://m.media-amazon.com/images/G/01/Zappos/Ralph-Lauren-May-2023/Ralph-Lauren-Mens-MGrid.jpg"width="400">
+	<img src="https://shop-phinf.pstatic.net/20231223_192/1703294800790PjOlB_PNG/image.png?type=w860">
+	{ko_description_detail}
+
+	<div style="display: block;">
+		<img src="https://www.skechers.com/on/demandware.static/-/Library-Sites-SkechersSharedLibrary/default/dw72c4120b/images/pdp/logo.svg;">
+	</div>
+	<div style="display: block;">
+		<img src="https://shop-phinf.pstatic.net/20231224_181/1703411552356CimWI_PNG/image.png?type=w860">
+	</div>
 
 	{product_images}
 
-	<div style="display: block;">
-	<img src="https://www.zappos.com/boutiques/3130/poloralphlauren_header110122.gif">
-	</div>
-	{ko_description_detail}
-
-        	
-	<img src="https://shop-phinf.pstatic.net/20231228_296/1703718751132RIyXT_JPEG/sizechartlogo.jpg?type=w860">
-	</center>
+	<img src="https://shop-phinf.pstatic.net/20231223_28/1703297049673JNuGv_JPEG/skechers_2.jpg?type=w860">
 	'''
 		return html
 	
@@ -738,7 +657,7 @@ class GoogleSheetsTest():
 		self.worksheet = '' # 작업할 시트
 		self.set_google_client()
 		self.set_sh()
-		self.set_worksheet(0)
+		self.set_worksheet()
 
 		# ZapposClass 연동 관련
 		self.url = ''
@@ -754,7 +673,8 @@ class GoogleSheetsTest():
 	def set_google_client(self):
 		# cur_directory = os.getcwd()
 		# print(cur_directory)
-		file_path = os.path.join(ROOT_DIR, 'python-crawling-gspread-145332f402e3.json')
+		script_dir = os.path.dirname(os.path.realpath(__file__))
+		file_path = os.path.join(script_dir, 'python-crawling-gspread-145332f402e3.json')
 		gc = gspread.service_account(filename=file_path)
 		self.google_client = gc
 	def set_sh(self):
@@ -774,32 +694,22 @@ class GoogleSheetsTest():
 	def set_url(self, target_cell):
 		self.url = self.get_url(target_cell)
 	# s13 ~ s61 셀 한번에 읽어들이기
-	def get_urls(self, start_cell, batch_size):
-		# 'S13:S61' 범위의 셀 값을 읽어들이기 = start_cell:start_cell+batch_size - 1
-		end_cell = f'S{int(start_cell[1:]) + batch_size - 1}'
+	def get_urls(self, start_cell, end_cell):
+		# 'S13:S61' 범위의 셀 값을 읽어들이기
 		cells = self.worksheet.range(f'{start_cell}:{end_cell}')
-		valid_urls = []
-		for cell in cells:
-			if cell.value and self.is_url(cell.value):
-				valid_urls.append(cell.value)
-		return valid_urls
-	def set_urls(self, start_cell, batch_size):
-		# cells = self.get_urls(start_cell, batch_size)
-		# self.urls = [cell.value for cell in cells]
-		self.urls = self.get_urls(start_cell, batch_size)
-	def is_url(self, text):
-		''' 문자열이 유효한 url 형식인지 검사
-		 	('http'로 시작하는지 검사함) '''
-		return 'http' in text
-	
+		return cells
+	def set_urls(self, start_cell, end_cell):
+		cells = self.get_urls(start_cell, end_cell)
+		self.urls = [cell.value for cell in cells]
+
+
 	# IP 우회 Gateway 연결 및 제거
 	def set_gateway_and_session(self):
 		self.ip_rotator = IpRotator("https://www.zappos.com")
 		self.gateway = self.ip_rotator.gateway
 		self.session = self.ip_rotator.session
 	def shutdown_gateway(self):
-		self.ip_rotator.shutdown_gateway()		
-
+		self.ip_rotator.shutdown_gateway()
 
 	# ZapposClass와 연결
 	## ZapposCalss를 url을 넣어서 초기화하고, set_all_of_this_color()을 호출하고, z.product_title 등의 속성값으로 필요값을 불러온다. 
@@ -821,7 +731,7 @@ class GoogleSheetsTest():
 		'''
 		# '상세설명'이 20번째 열에 위치해 있다고 가정
 		# data = [''] * 19 + [description]
-		data = ['','', self.z.full_title, '', self.z.oriprice, '', '', '', '', self.z.options_size_text, '', self.z.options_quantities_text, '', '', '', '', '', self.z.title_image, self.z.url, self.z.html_of_this_color, self.z.brand_ko_official, self.z.brand_ko_official]
+		data = ['','', self.z.full_title, '', self.z.oriprice, '', '', '', '', self.z.options_size_text, '', self.z.options_quantity_text, '', '', '', '', '', self.z.title_image, self.z.url, self.z.html_of_this_color, self.z.brand_ko_official, self.z.brand_ko_official]
 		# data = ['','', self.z.full_title, '', self.z.oriprice, '', '', '', '', '', '', '', '', '', '', '', '', self.z.title_image, self.z.url, self.z.html_of_this_color, self.z.brand_ko_official, self.z.brand_ko_official] # '옵션값'이 안될 때
 		return data
 	
@@ -884,8 +794,9 @@ class GoogleSheetsTest():
 def main():
 	"""Tests request with a URL"""
 
-	# url = 'https://www.zappos.com/p/polo-ralph-lauren-kids-logo-cotton-jersey-tee-toddler-little-kids-deckwash-white-freshwater/product/9911173/color/1060691'
-	# z = ZapposSoupTest(url, isTesting=True, size_type=2)
+	# url = 'https://www.zappos.com/p/polo-ralph-lauren-collins-moccasin-slipper-navy-2/product/9811783/color/124204'
+	# z = ZapposSoupTest(url, isTesting=True)
+
 	# print(zappos.soup.prettify()[:500])
 	# print(zappos.soup.select_one("main").prettify()[:50000])
 	# z.test_print_of_this_color()
@@ -906,8 +817,9 @@ def main():
 		# 우회 IP 만들기
 		print('우회 ip 만드는 중...')
 		print()
-		ip_rotator = IpRotator("https://www.zappos.com")
+		# ip_rotator = IpRotator("https://www.zappos.com")
 		# ip_rotator = IpRotator("https://api64.ipify.org")
+		ip_rotator = IpRotator("https://whswogkwldksgsmstkdlxm.org")
 		print('연동 완료')
 
 		# 구글 시트 연동하기
@@ -964,7 +876,7 @@ def main():
 			print()
 
 			# 상품 종류 입력받기
-			product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류 3.키즈 신발 : ')
+			product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류: ')
 
 			# 자포스 클래스 생성
 			g.set_ZapposClass(g.url, False, int(product_type), ip_rotator)
@@ -1013,6 +925,9 @@ def main():
 				ip_rotator.shutdown_gateway()
 		# IP_LOG_FILE에 ip 패턴 정보도 기록?
 				
+	run_one()
+		
+
 	def proxy_test(): # => 성공
 		# import pandas as pd 
 		src = 'https://api64.ipify.org'
@@ -1025,102 +940,6 @@ def main():
 
 		ip_rotator.shutdown_gateway()
 	# proxy_test()
-		
-
-	def batch(batch_size):
-		global ip_rotator
-		# 멈추지 않고 상호작용
-		print('============= 프로그램 시작 =============')
-		print('여러 url 한 번에 읽고 한 줄씩 업로드 모드(Batch 모드)를 선택하셨습니다.')
-		print()
-		# 우회 IP 만들기
-		print('우회 ip 만드는 중...')
-		print()
-		ip_rotator = IpRotator("https://www.zappos.com")
-		print('연동 완료')
-
-		# 구글 시트 연동하기
-		sheet_file_name = input('작업하고자 하는 구글 스프레드시트 문서 제목을 정확히 입력해주세요("대량등록 매크로야 힘내"를 선택하려면 그냥 엔터): ')
-		if not sheet_file_name.strip():
-			sheet_file_name = "대량등록 매크로야 힘내"
-		g = GoogleSheetsTest(sheet_file_name)
-				
-		# 상품 종류 입력받기
-		product_type = input('어떤 종류의 상품입니까? 1.신발 2.한국 사이즈로 변환하지 않아도 되는 종류 3.키즈 신발 (품목을 변경하려면 다시 시작하세요): ')
-		
-		url_cell = None
-		target_row = None
-		while True:
-			# 컬럼 S에 모든 url이 들어 있다고 가정, 셀 번호 입력받기:
-			user_input = input(f'url이 적힌 시작 행 번호를 "17"과 같이 입력해주세요(종료를 원할 시 "q", 다음 {batch_size}개의 url로 자동 진행은 엔터): ')
-			if user_input.lower() == 'q':
-				print('q를 입력하여 프로그램을 종료합니다.')
-				print('============= 프로그램 종료 =============')
-				break
-			elif not user_input.strip():
-				if not url_cell:
-					print('처음 url 행 번호는 지정해줘야 합니다.')
-					continue
-				url_cell = 'S' + str(int(url_cell[1:]) + batch_size)
-				# target_row = 
-			else:
-				url_cell = 'S' + str(user_input)
-
-			# url N개 가져오기
-			g.set_urls(url_cell, batch_size)
-			print(f'\n{url_cell}부터 {batch_size}개를 읽어옵니다')
-			print()
-
-			# 업로드 시작 행 번호 입력받기
-			while not target_row:
-				user_input_row_num = input('업로드할 행 번호를 (원본 url과 겹치지 않도록 가급적 최하단 행 번호를) 입력해주세요: ')
-				## TODO: target_row 유효성 검사하기(''나 그냥 엔터도 not isdigit()이라고 검사해주나?)
-				if not user_input_row_num.isdigit(): 
-					print('유효한 행 번호를 입력해주세요')
-					continue
-				else:
-					target_row = int(user_input_row_num)
-
-			# 10 내에서 1~10까지 반복하는 
-			for i, url in enumerate(g.urls):
-				print('\n-----------------------------')
-				print(f'{i + 1}/{len(g.urls)} (S{str(int(url_cell[1:]) + i)}) 작업중...')
-
-				# 자포스 클래스 생성
-				g.set_ZapposClass(url, False, int(product_type), ip_rotator)
-				g.initialize_and_get_Zappos_data()
-	
-				# 한 줄 한 줄 삽입하기
-				g.add_rows(int(target_row), [g.make_row_data()])
-				target_row += 1
-			# 한 행 지정해 여러 줄 낑겨넣기
-			# data = 
-			# g.add_rows(int(target_row), [g.make_row_data()])
-
-			# 다음 줄의 url로 계속하시겠습니까?
-
-		# IP gateway 종료
-		ip_rotator.shutdown_gateway()
-
-	def run_batch(batch_size):
-		''' batch()을 실행하고 finally로 꼭 gateway shutdown 시키고, 로그 기록 '''
-		global ip_rotator
-		# 로깅 기본 설정: 에러 메시지를 'error.log' 파일에 기록하도록 설정
-		logging.basicConfig(filename=ERROR_LOG_FILE, level=logging.ERROR, format='[Batch]%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-		try: 
-			batch(batch_size)
-		except Exception as e:
-			logging.error("An error occurred: %s", e)
-			# [날짜-시간 로그레벨: 메시지] 형식으로 메세지 기록
-			# ex) 2024-01-03 01:46:05,123 ERROR: An error occurred: [에러 메시지]
-			# 실제ex) ERROR:root:An error occurred: 403 Client Error: Forbidden for url: https://6fdh7z1wld.execute-api.eu-west-2.amazonaws.com/ProxyStage/p/lauren-ralph-lauren-patchwork-pique-polo-shirt-mascarpone-cream/product/9913039/color/263644
-			# 수정한 형식ex) 2024-01-03 11:39:59,210 - root - ERROR - An error occurred: invalid literal for int() with base 10: ''
-		finally:
-			if ip_rotator is not None:
-				ip_rotator.shutdown_gateway()
-
-	# run_one()
-	run_batch(batch_size=2)
 
 if __name__ == '__main__':
 	main()

@@ -6,6 +6,7 @@ pip3.9 install deep-translator
 pip3.9 install beautifulsoup4
 pip3.9 install requests-ip-rotator
 pip3.9 install python-dotenv
+(dev) pip3.9 install pyinstaller
 '''
 # ==========================================
 #-*-coding: utf-8-*-

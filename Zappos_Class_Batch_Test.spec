@@ -29,6 +29,7 @@ exe = EXE(
     [],
     name='Zappos_Class_Batch_Test',
     debug=False,
+    uac_admin=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,

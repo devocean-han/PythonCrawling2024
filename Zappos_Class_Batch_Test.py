@@ -414,7 +414,7 @@ class ZapposSoupTest(bs):
 			return False
 
 	def trim_valid_size_tags(self, input_tags, is_womens):
-		''' 남성 신발: 7.0(250mm) ~ 14.0(320mm)까지 유효.
+		''' 남성 신발: 7.0(250mm) ~ 16.0(330mm)까지 유효.
 			여성 신발: 5.0(220mm) ~ 16.0(330mm)까지 유효.
 			유효 사이즈만 태그 그대로 반환
 			(유효 사이즈를 벗어나는 옵션들은 4/15 계산의 분모, 분자에 모두 셈하지 않게 된다)
@@ -541,6 +541,8 @@ class ZapposSoupTest(bs):
 			13.0: 310,
 			13.5: 315,
 			14.0: 320,
+			15.0: 325,
+			16.0: 330,
 		}
 		shoe_womens_size = {
 			5.0: 220,

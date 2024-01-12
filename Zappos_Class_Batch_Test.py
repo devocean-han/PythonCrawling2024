@@ -607,11 +607,9 @@ class ZapposSoupTest(bs):
 	
 	# 3-2. 옵션 재고수량
 	def set_options_quantities(self):
-		''' 그냥 11, 22, 33, ...개로 일괄 설정하기 '''
-		if len(self.options_size) <= 9:
-			quantities = [int(str(i) + str(i)) for i in range(1, len(self.options_size) + 1)]
-		else: 
-			quantities = [50 for i in self.options_size]
+		''' 11, 22, 33, ..., 99, 10, 11, ...개로 일괄 설정 '''
+		quantities = [int(str(i) + str(i)) if i <= 9 else int(str(i)) 
+				for i in range(1, len(self.options_size) + 1)]
 		self.options_quantities = quantities
 	def set_options_quantities_text(self):
 		self.options_quantities_text = ','.join(str(size) for size in self.options_quantities)

@@ -7,6 +7,7 @@ pip3.9 install beautifulsoup4
 pip3.9 install requests-ip-rotator
 pip3.9 install python-dotenv
 (dev) pip3.9 install pyinstaller
+(dev) pip3.9 install pytest
 '''
 # ==========================================
 #-*-coding: utf-8-*-

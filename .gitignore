@@ -2,6 +2,11 @@
 .env
 python-crawling-gspread-*.json
 *.log
+테스트 결과물 샘플/
+dev_data/
+dev_source_codes/
+log/
+tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -7,6 +7,7 @@ dev_data/
 dev_source_codes/
 log/
 tests/
+*.진행사항.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

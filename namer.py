@@ -148,13 +148,13 @@ class Namer:
                     result.append(site_official)
 
             if len(result) == 0:
-                print(f'"{site_name}"에 해당하는 공식 사이트명을 찾지 못했습니다')
+                print(f'"{site_name}"에 해당하는 공식 사이트명을 찾지 못했습니다\n')
                 return ''
             elif len(result) == 1:
                 return result[0]
             else: 
                 print(f'2개 이상의 사이트명을 찾았습니다: {result}')
-                print('키워드를 좁혀주세요')
+                print('키워드를 좁혀주세요\n')
                 return ''
 
     @staticmethod

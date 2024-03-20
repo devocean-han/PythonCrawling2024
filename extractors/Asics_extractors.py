@@ -176,10 +176,10 @@ class AsicsSizeTransformer(I.SizeTransformer):
             return size_list
     
     def trans_shoes_kids(self, size_list) -> list[str]:
-        ''' 아식스는 아동 신발 사이즈에 'K'가 붙는 형식이므로
-        ['kids'] 대신 ['kids_with_k']을, 숫자 대신 문자열 그대로 조회 '''
+        ''' 아식스는 아동 신발 사이즈 '앞'에 'K'가 붙는 형식이므로
+        ['kids'] 대신 ['kids_with_front_k']을, 숫자 대신 문자열 그대로 조회 '''
         try:
-            sizes_transformed = [self.size_tables['shoes']['kids_with_k'].get(size)
+            sizes_transformed = [self.size_tables['shoes']['kids_with_front_k'].get(size)
                 for size in size_list]
             return [str(size) for size in sizes_transformed
                 if size is not None]
@@ -243,6 +243,7 @@ class AsicsColorNameExtractor(I.ColorNameExtractor):
         except Exception as e:
             logger.error(e)
             return ''
+
 
 @export_strategy(SITE_OFFICIAL)
 class AsicsColorUrlsExtractor(I.ColorUrlsExtractor):

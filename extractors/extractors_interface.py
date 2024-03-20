@@ -174,6 +174,35 @@ class SizeTransformer(ABC):
 			# 6.5: 255,
 			# 7.0: 260,
 		}
+		shoe_kids_size_with_front_K = { 
+			'K7': 130,
+			'K7.5': 135,
+			'K8': 140,
+			'K8.5': 145,
+			'K9': 150,
+			'K9.5': 155,
+			'K10': 160,
+			'K10.5': 165,
+			'K11': 170,
+			'K11.5': 175,
+			'K12': 180,
+			'K12.5': 185,
+			'K13': 190,
+			'K13.5': 195,
+			'1': 200,
+			'1.5': 205,
+			'2': 210,
+			'2.5': 215,
+			'3': 220,
+			'3.5': 225,
+			'4': 230,
+			'4.5': 235,
+			'5': 240,
+			'5.5': 245,
+			'6': 250, 
+			# 6.5: 255,
+			# 7.0: 260,
+		}
 		shoe_kids_size_complete = { # 1K ~ 13.5K, 1.0 ~ 7.0까지
 			'1.0K': 70,
 			'2.0K': 80,
@@ -217,6 +246,7 @@ class SizeTransformer(ABC):
 		size_tables['shoes']['womens'] = shoe_womens_size
 		size_tables['shoes']['kids'] = shoe_kids_size
 		size_tables['shoes']['kids_with_k'] = shoe_kids_size_with_K
+		size_tables['shoes']['kids_with_front_k'] = shoe_kids_size_with_front_K
 		self.size_tables = size_tables
 	@abstractmethod
 	def trans_shoes_mens(self, size_list) -> list[str]:

@@ -112,6 +112,9 @@ class RequestAndSaveToPickle():
 		self.headers_list = RequestAndSaveToPickle.headers_list
 		self.headers = self.headers_list[headers_num]
 	
+	def generate_unique_filename(self, url):
+		return self.__generate_unique_filename(url)
+	
 	def __generate_unique_filename(self, url):
 		''' https://www.fila.com/shoes 와 같은 url에서 
 		SHA-256 해시값을 이용, url 길이와 상관 없는 고유한 파일명 반환 
@@ -161,9 +164,9 @@ class RequestAndSaveToPickle():
 		for n in range(4):
 			try:
 				if self.ip_rotator is not None and self.ip_rotator.is_opened:
-					response = self.ip_rotator.session.get(url, headers=self.headers)
+					response = self.ip_rotator.request(url, headers=self.headers)
 				else: 
-					response = requests.get(url, headers=self.headers)
+					response = requests.get(url, headers=self.headers, timeout=(10, 20)) # 연결에 10초, 응답 대기에 20초. 최대 30초 대기 후 Timeout 예외 던짐
 				response.raise_for_status()
 				print("Request was successful!")
 				return response
@@ -272,7 +275,7 @@ class Requestor():
 				if self.ip_rotator is not None and self.ip_rotator.is_opened and not without_ip:
 					response = self.ip_rotator.request(url, self.headers)
 				else: 
-					response = requests.get(url, headers=self.headers)
+					response = requests.get(url, headers=self.headers, timeout=(10, 20)) # 연결에 10초, 응답 대기에 20초. 최대 30초 대기 후 Timeout 예외 던짐
 				response.raise_for_status()
 				print("Request was successful!")
 				message = make_response_to_log_message(response, response.url)
@@ -426,6 +429,10 @@ class SeleniorAndSaveToHtml:
 			print('Successfully saved HTML file----------')
 		return html
 		
+	def generate_unique_filename(self, url):
+		return self.__generate_unique_filename(url)
+	
+
 	def __generate_unique_filename(self, url):
 		''' https://www.fila.com/shoes 와 같은 url에서 
 		SHA-256 해시값을 이용, url 길이와 상관 없는 고유한 파일명 반환 

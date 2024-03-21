@@ -324,7 +324,493 @@ def test_main(monkeypatch):
 	main()
 	assert False
 
-ip_rotator = None
+def get_size_type_input(is_size_type_deducible, size_type=None):
+	''' 최대 5회 재입력 요구 후 타입 4(변환하지 않음)로 임의 지정함 '''
+	tries = 0
+	while size_type is None:
+		if tries >= 5:
+			print(f'-----\n입력 횟수({tries}회)를 초과하여 사이즈 옵션을 4(변환하지 않음으)로 임의 지정합니다\n-----')
+			return 4
+		tries += 1
+		if is_size_type_deducible: # 사이즈 타입 추론 가능: 1,2,3,4,5번 옵션 제공
+			possible_size_type = ['1', '2', '3', '4', '5']
+			user_input_size_type = input('\n사이즈 타입을 설정해주세요(1.남성 신발 2.여성 신발 3.아동 신발 4.한국 사이즈로 변환하지 않음 5.남성/여성/아동 사이즈 자동 변환): ')
+		else: # 1,2,3,4번 옵션만 제공
+			possible_size_type = ['1', '2', '3', '4']
+			user_input_size_type = input('\n사이즈 타입을 설정해주세요(1.남성 신발 2.여성 신발 3.아동 신발 4.한국 사이즈로 변환하지 않음): ')
+		#TODO: "이 사이트는 사이즈 타입 추론이 불가능한 사이트입니다" 안내해야 해나?
+		
+		if user_input_size_type not in possible_size_type:
+			print('유효한 옵션 번호가 아닙니다')
+			continue
+		else:
+			size_type = int(user_input_size_type)
+	return size_type
+def get_batch_size_input(batch_size):
+	''' 주어진 batch_size가 None이면 사용자에게 배치 사이즈 입력을 요구하여 숫자로 변환, None이 아니면 그대로 반환.
+	사용자로부터 입력받은 값이 유효한 값(숫자형 문자열)이 아닌 경우 최대 5회 재입력 요구 후 2로 임의 지정 '''
+	tries = 0
+	while batch_size is None:
+		if tries >= 5:
+			print(f'-----\n입력 횟수({tries}회)를 초과하여 배치 사이즈를 2로 임의 지정합니다\n-----')
+			return 2
+		tries += 1
+		user_input_batch_size = input('\n한 번에 읽고 작업할 url 개수(배치 사이즈)를 입력해주세요: ')
+		if not user_input_batch_size.isdigit():
+			print('입력값이 숫자가 아닙니다')
+		else:
+			batch_size = int(user_input_batch_size)
+	return batch_size
+
+def get_start_url_cell_input(url_cell, batch_size):
+	''' 
+	반환값: 'S115' | None 
+	- 기존의 url_cell값을 받아 batch_size를 증가시킨 새 url_cell을 반환
+	- 기존 url_cell이 None이면 새로 입력받은 결과 url_cell을 반환
+	- 종료 시그널 'q'를 입력받게 되면 None을 반환
+	- 재입력 횟수가 5회를 초과하면 'S1'로 임의 반환
+	'''
+	tries = 0
+	while True: 
+		if tries >= 5:
+			print(f'-----\n입력 횟수({tries}회)를 초과하여 시작 행 번호를 "1"로 임의 지정합니다\n-----')
+			return 'S1'
+		tries += 1
+		user_input_url_cell_num = input(f'\nurl이 적힌 시작 행 번호를 "10"과 같이 입력해주세요(종료를 원할 시 "q", 다음 {batch_size}개의 url로 자동 진행은 엔터): ') 
+		if user_input_url_cell_num.lower() == 'q':
+			print('q를 입력하여 프로그램을 종료합니다.')
+			print('============= 프로그램 종료 =============')
+			return None
+		elif user_input_url_cell_num.strip() == '':
+			if url_cell is None:
+				print('처음 url 행 번호는 지정해줘야 합니다.')	
+				continue
+			url_cell = 'S' + str(int(url_cell[1:]) + batch_size)
+			return url_cell
+		elif not user_input_url_cell_num.isdigit():
+			print(f'유효한 행 번호로 인식할 수 없습니다: {user_input_url_cell_num}')
+			continue
+		else:
+			url_cell = 'S' + str(user_input_url_cell_num)
+			return url_cell
+
+def get_initial_upload_row_input(target_row, batch_size) -> int:
+	''' 
+	반환값: 115
+	- 업로드할 행 번호 target_row 값을 사용자로부터 입력받아 반환
+	- 최대 5회 재입력 요청 후 batch_size + 2행으로 임의 배정
+	'''
+	tries = 0
+	while target_row is None:
+		if tries >= 5:
+			print(f'-----\n입력 횟수({tries}회)를 초과하여 업로드 행 번호를 {batch_size + 2}로 임의 지정합니다\n-----')
+			return batch_size + 2
+		tries += 1
+		user_input_upload_row_num = input('\n업로드할 행 번호를 입력해주세요(기존 행을 아래로 밀어내고 삽입되는 방식으로 업로드됩니다): ')
+		if not user_input_upload_row_num.isdigit():
+			print('유효한 행 번호로 인식할 수 없습니다')
+		else: 
+			target_row = int(user_input_upload_row_num)
+	return target_row
+
+
+
+def get_soup_from_direct_json(sc, requestor, url):
+	url_transformed = sc.replace_to_direct_json_url(url)
+	response = requestor.request(url_transformed)
+	soup = response.json() # TODO: if 'application/json' in response.headers['Content-Type'] 사전체크 필요할지도
+	return soup
+def get_soup_from_selenior(selenior, selenior_selectors, bs, url):
+	html = selenior.get_html_after_waiting_target_selector(url, *selenior_selectors)
+	soup = bs(html, "html.parser")
+	return soup
+def get_soup_from_requestor(requestor, bs, url):
+	response = requestor.request(url)
+	soup = bs(response.content, "html.parser")
+	return soup
+
+get_soup_scenario_type = {
+	1: get_soup_from_direct_json,
+	2: get_soup_from_selenior,
+	3: get_soup_from_requestor,
+}
+def get_soup(is_direct_json_url_possible, is_selenior_needed, url, sc, requestor, selenior, selenior_selectors, bs):
+	# 만약 direct_json_url로 변환이 가능하다면 이걸로 무조건 수행
+	if is_direct_json_url_possible:
+		# soup = get_soup_scenario_type.get(1)()
+		return get_soup_from_direct_json(sc, requestor, url)
+	# 그렇지 않고 셀레니어 전략이 존재하면 셀레니어로 수행
+	elif is_selenior_needed:
+		# html = selenior.get_html_after_waiting_target_selector(URLS_ORIGINAL[i], *selenior_selectors)
+		# soup = get_soup_scenario_type.get(2)()
+		return get_soup_from_selenior(selenior, selenior_selectors, bs, url)
+	else: # Requestor + IpRotator 이용
+		# soup = get_soup_scenario_type.get(3)()
+
+		print('get_..._requestor 호출됨')
+		return get_soup_from_requestor(requestor, bs, url)
+	
+	return soup
+
+
+def test_batch_class(monkeypatch):
+	# 인풋 사이트명, 사이즈 타입, 구글 문서명, 컬러urls 일괄 추출 여부, 배치 사이즈, url행, 쓸 행, 이어서 혹은 그만
+	fake_inputs = iter(['asics', '5', '대량등록 시트 테스트', 'n', '1', '320', '366', 'q'])
+	monkeypatch.setattr('builtins.input', lambda _: next(fake_inputs))
+	batch = Batch()
+	batch.run_batch()
+	assert False
+
+class Batch:
+	''' 
+	
+	- run_batch()
+	'''
+	'''
+	전체 협력 흐름을 조정하는 관리자 역할:
+	"사이트명 무엇?" 1 2 3 4 4.5 
+	"사이즈 타입 무엇?"
+	5 "구글 문서명 무엇?" 6
+	"동일 제품 다른 컬러 발견 시 자동 추출할 것?"
+	-------
+	"배치 사이즈 무엇?"
+	"읽어들일 셀, 쓸 행 무엇?" 7 8
+	9 10 11 12 13 (반복)
+	14
+	'''
+	def __init__(self) -> None:
+		self.SITE_OFFICIAL = None
+		self.SITE_OFFICIAL_SNAKE = None
+
+		# 플래그
+		self.is_size_type_deducible = False
+		self.is_direct_json_url_possible = False
+		self.is_selenior_needed = False
+		# => 기본은 단순 Requestor + Iprotator를 이용하는 요청
+		
+		# 외부 통신 객체
+		self.selenior = None
+		self.requestor = None
+		self.ip_rotator = None
+		self.sc = None
+		self.google_sheeter = None
+
+		# 큰 while루프 
+		self.size_type = None
+		self.selenior_selectors = None
+		self.batch_size = None
+		self.url_cell = None
+		self.target_row = None
+		self.URLS = []
+		
+		# url별 데이터 추출(작은 while 루프)
+		self.rows_data = []
+		self.auto_extract_color_urls = None
+		self.do_not_append_color_urls = []
+		self.appended_color_urls_size = 0
+		self.batch_i = 0
+
+		print('============= 프로그램 시작 =============\n')
+		self.__set_site_official()
+		self.__set_logging()
+		self.__set_site_and_flags()
+		self.__set_size_type()
+		self.__set_request_strategy()
+		self.__set_gs_document_and_worksheet()
+		self.__open_ip_gateway()
+		self.__set_auto_extract_color_urls()
+
+	def __set_site_official(self):
+		''' SiteClass 생성 및 사이트명 입력 요청, 유효성 검사 '''
+		# site_input = input("사이트명을 입력해주세요(ex. 자포스, Zappos, Vans, vans): ") # => sc.get_official_site_name()으로 흡수됨
+		self.sc = SiteClass()
+		self.SITE_OFFICIAL = self.sc.get_official_site_name() 
+			
+	def __set_logging(self): # TODO: 로거를 클래스 종속으로 만들어야 할까? 
+		# 로깅 셋업
+		self.SITE_OFFICIAL_SNAKE = '_'.join(self.SITE_OFFICIAL.split(' '))
+		set_logging(logging.INFO, self.SITE_OFFICIAL_SNAKE)
+	
+	def __set_site_and_flags(self):
+		self.sc.set_site(self.SITE_OFFICIAL) # TODO: get_official_site_name()이 띄어쓰기 없는 이름도 받도록 해야함
+		self.selenior_selectors = self.sc.get_selenium_wait_selectors() # self.sc.selenium_wait_strategy 직접 접근 막음. 훌륭함
+		# is_size_type_deducible = self.sc.size_type_strategy is not None
+		# direct_json_url_transformer = self.sc.direct_json_url_transform_strategy # TODO: -> 무조건 호출하는 걸로, 해당 속성을 외부에서 직접 접근하는 것을 막음. 나름 해결 완료
+	
+		# 위의 세가지 플래그를 속성 그대로 접근해서 일단 사용해봄
+		self.is_size_type_deducible = self.sc.size_type_strategy is not None
+		self.is_direct_json_url_possible = self.sc.direct_json_url_transform_strategy is not None
+		self.is_selenior_needed = self.sc.selenium_wait_strategy is not None
+
+	def __set_size_type(self):
+		''' 사이즈 타입 입력받기(최초 입력 후 생략됨) '''
+		self.size_type = self.__get_size_type_input(self.is_size_type_deducible, self.size_type)
+	def __get_size_type_input(self, is_size_type_deducible, size_type=None):
+		''' 최대 5회 재입력 요구 후 타입 4(변환하지 않음)로 임의 지정함 '''
+		tries = 0
+		while size_type is None:
+			if tries >= 5:
+				print(f'-----\n입력 횟수({tries}회)를 초과하여 사이즈 옵션을 4(변환하지 않음으)로 임의 지정합니다\n-----')
+				return 4
+			tries += 1
+			if is_size_type_deducible: # 사이즈 타입 추론 가능: 1,2,3,4,5번 옵션 제공
+				possible_size_type = ['1', '2', '3', '4', '5']
+				user_input_size_type = input('\n사이즈 타입을 설정해주세요(1.남성 신발 2.여성 신발 3.아동 신발 4.한국 사이즈로 변환하지 않음 5.남성/여성/아동 사이즈 자동 변환): ')
+			else: # 1,2,3,4번 옵션만 제공
+				possible_size_type = ['1', '2', '3', '4']
+				user_input_size_type = input('\n사이즈 타입을 설정해주세요(1.남성 신발 2.여성 신발 3.아동 신발 4.한국 사이즈로 변환하지 않음): ')
+			#TODO: "이 사이트는 사이즈 타입 추론이 불가능한 사이트입니다" 안내해야 해나?
+			
+			if user_input_size_type not in possible_size_type:
+				print('유효한 옵션 번호가 아닙니다')
+				continue
+			else:
+				size_type = int(user_input_size_type)
+		return size_type
+	
+	def __set_request_strategy(self):
+		# Requestor + IpRotator v.s. Selenior 분기
+		if not self.is_direct_json_url_possible and self.is_selenior_needed:
+			# 셀레니어를 생성하는 유일한 경우: direct_url변환은 불가능한데 셀레니어가 필요한 경우
+			self.selenior = Selenior(self.SITE_OFFICIAL)
+		else: 
+			self.ip_rotator = IpRotator()
+			self.requestor = Requestor(self.SITE_OFFICIAL, 0, self.ip_rotator) 
+	
+	def __set_gs_document_and_worksheet(self):
+		''' GoogleSheeter 생성 및 문서, 시트 설정 '''
+		self.google_sheeter = GoogleSheeter()
+		sheet_file_name = input('작업하고자 하는 구글 스프레드시트 문서 제목을 정확히 입력해주세요("대량등록 매크로야 힘내"를 선택하려면 그냥 엔터): ')
+		if not sheet_file_name.strip():
+			sheet_file_name = "대량등록 매크로야 힘내"
+		self.google_sheeter.set_document_and_worksheet(sheet_file_name)
+	
+	def __open_ip_gateway(self):
+		# => 그냥 ip_rotator가 존재하면 게이트를 열도록 함
+		if self.ip_rotator is not None:
+			self.ip_rotator.open_gateway(self.SITE_OFFICIAL)
+
+	def __set_auto_extract_color_urls(self):
+		auto_extract_input = input('추가 색상 발견 시 일괄 추출을 진행하시겠습니까? (y/n) ')
+		if auto_extract_input == 'y':
+			self.auto_extract_color_urls = True
+		else:
+			self.auto_extract_color_urls = False
+
+	def batch(self):
+		''' 사용자가 q를 입력할 때까지 batch_size개씩 url 추출 및 행 데이터 삽입 반복 '''
+		while True:
+			# 배치 사이즈 입력받기(최초 입력 후 생략됨)
+			self.batch_size = Batch.get_batch_size_input(self.batch_size)
+
+			# 읽어들일 url 행 입력받기
+			self.url_cell = Batch.get_start_url_cell_input(self.url_cell, self.batch_size)
+			if self.url_cell is None:
+				# 한 번 사용자 입력을 받았는데도 url_cell이 None으로 남아있다는 것은
+				# 사용자가 종료 시그널 'q'를 입력했다는 뜻 => outer while루프를 빠져나감
+				break
+
+			# 업로드 행 입력받기(최초 입력 후 생략됨)
+			self.target_row = Batch.get_initial_upload_row_input(self.target_row, self.batch_size)
+			
+			# url 읽어들이기
+			self.URLS = self.google_sheeter.get_urls(self.url_cell, self.batch_size)
+			
+			# URLS별 행 데이터 추출(색상 url도 도중에 추가)
+			self.__set_rows_data_for_all_URLS()			
+			# 추출한 batch_size개 데이터 한 번에 시트에 기록 
+			self.google_sheeter.add_rows(self.target_row, self.rows_data)
+			# 다음 batch 입력할 행 업데이트
+			self.target_row += self.batch_size + self.appended_color_urls_size
+			
+	@staticmethod
+	def get_batch_size_input(batch_size):
+		''' 주어진 batch_size가 None이면 사용자에게 배치 사이즈 입력을 요구하여 숫자로 변환, None이 아니면 그대로 반환.
+		사용자로부터 입력받은 값이 유효한 값(숫자형 문자열)이 아닌 경우 최대 5회 재입력 요구 후 2로 임의 지정 '''
+		tries = 0
+		while batch_size is None:
+			if tries >= 5:
+				print(f'-----\n입력 횟수({tries}회)를 초과하여 배치 사이즈를 2로 임의 지정합니다\n-----')
+				return 2
+			tries += 1
+			user_input_batch_size = input('\n한 번에 읽고 작업할 url 개수(배치 사이즈)를 입력해주세요: ')
+			if not user_input_batch_size.isdigit():
+				print('입력값이 숫자가 아닙니다')
+			else:
+				batch_size = int(user_input_batch_size)
+		return batch_size
+		
+	@staticmethod
+	def get_start_url_cell_input(url_cell, batch_size):
+		''' 
+		반환값: 'S115' | None 
+		- 기존의 url_cell값을 받아 batch_size를 증가시킨 새 url_cell을 반환
+		- 기존 url_cell이 None이면 새로 입력받은 결과 url_cell을 반환
+		- 종료 시그널 'q'를 입력받게 되면 None을 반환
+		- 재입력 횟수가 5회를 초과하면 'S1'로 임의 반환
+		'''
+		tries = 0
+		while True: 
+			if tries >= 5:
+				print(f'-----\n입력 횟수({tries}회)를 초과하여 시작 행 번호를 "1"로 임의 지정합니다\n-----')
+				return 'S1'
+			tries += 1
+			user_input_url_cell_num = input(f'\nurl이 적힌 시작 행 번호를 "10"과 같이 입력해주세요(종료를 원할 시 "q", 다음 {batch_size}개의 url로 자동 진행은 엔터): ') 
+			if user_input_url_cell_num.lower() == 'q':
+				print('q를 입력하여 프로그램을 종료합니다.')
+				print('============= 프로그램 종료 =============')
+				return None
+			elif user_input_url_cell_num.strip() == '':
+				if url_cell is None:
+					print('처음 url 행 번호는 지정해줘야 합니다.')	
+					continue
+				url_cell = 'S' + str(int(url_cell[1:]) + batch_size)
+				return url_cell
+			elif not user_input_url_cell_num.isdigit():
+				print(f'유효한 행 번호로 인식할 수 없습니다: {user_input_url_cell_num}')
+				continue
+			else:
+				url_cell = 'S' + str(user_input_url_cell_num)
+				return url_cell
+	
+	@staticmethod
+	def get_initial_upload_row_input(target_row, batch_size) -> int:
+		''' 
+		반환값: 115
+		- 업로드할 행 번호 target_row 값을 사용자로부터 입력받아 반환
+		- 최대 5회 재입력 요청 후 batch_size + 2행으로 임의 배정
+		'''
+		tries = 0
+		while target_row is None:
+			if tries >= 5:
+				print(f'-----\n입력 횟수({tries}회)를 초과하여 업로드 행 번호를 {batch_size + 2}로 임의 지정합니다\n-----')
+				return batch_size + 2
+			tries += 1
+			user_input_upload_row_num = input('\n업로드할 행 번호를 입력해주세요(기존 행을 아래로 밀어내고 삽입되는 방식으로 업로드됩니다): ')
+			if not user_input_upload_row_num.isdigit():
+				print('유효한 행 번호로 인식할 수 없습니다')
+			else: 
+				target_row = int(user_input_upload_row_num)
+		return target_row
+
+	def __set_rows_data_for_all_URLS(self):
+		# 한 뭉텅이의 URLS와 운명(초기화)를 함께하는 속성들:
+		self.rows_data = []
+		self.batch_i = 0
+		self.do_not_append_color_urls = []
+		self.appended_color_urls_size = 0
+		
+		# batch_size개 URLS 전체 순회
+		while self.batch_i < len(self.URLS):
+			print('\n-----------------------------')
+			print(f'{self.batch_i + 1}/{len(self.URLS)} (S{str(int(self.url_cell[1:]) + self.batch_i - self.appended_color_urls_size)}) 작업중...')
+			url = self.URLS[self.batch_i]
+			row_data = self.__get_row_data_of_one_url(url)
+			self.rows_data.append(row_data)
+
+			if self.auto_extract_color_urls == True:
+				self.__append_color_urls()
+			self.batch_i += 1
+	
+	def __get_row_data_of_one_url(self, url):
+		# 요청 --(버튼(2) + (3) 조합)-> soup
+		soup = Batch.get_soup(
+			self.is_direct_json_url_possible, 
+			self.is_selenior_needed, 
+			url, 
+			self.sc, 
+			self.requestor, 
+			self.selenior, 
+			self.selenior_selectors, 
+			bs
+		)
+
+		# soup --(사이즈 타입)--> row_data 
+		self.sc.set_all_data(soup, self.size_type)
+		row_data = self.sc.get_sheet_formatted_row_data(self.size_type)
+		row_data[-4] = url # row 데이터에 원본 url 정보 추가
+		return row_data
+	
+	@staticmethod
+	def get_soup_from_direct_json(sc, requestor, url):
+		url_transformed = sc.replace_to_direct_json_url(url)
+		response = requestor.request(url_transformed)
+		soup = response.json() # TODO: if 'application/json' in response.headers['Content-Type'] 사전체크 필요할지도
+		return soup
+	
+	@staticmethod
+	def get_soup_from_selenior(selenior, selenior_selectors, bs, url):
+		html = selenior.get_html_after_waiting_target_selector(url, *selenior_selectors)
+		soup = bs(html, "html.parser")
+		return soup
+	
+	@staticmethod
+	def get_soup_from_requestor(requestor, bs, url):
+		response = requestor.request(url)
+		soup = bs(response.content, "html.parser")
+		return soup
+
+	get_soup_scenario_type = {
+		1: get_soup_from_direct_json,
+		2: get_soup_from_selenior,
+		3: get_soup_from_requestor,
+	}
+	
+	@staticmethod
+	def get_soup(is_direct_json_url_possible, is_selenior_needed, url, sc, requestor, selenior, selenior_selectors, bs):
+		# 만약 direct_json_url로 변환이 가능하다면 이걸로 무조건 수행
+		if is_direct_json_url_possible:
+			# soup = get_soup_scenario_type.get(1)()
+			# print('get_soup_from_direct_json 호출됨')
+			return Batch.get_soup_from_direct_json(sc, requestor, url)
+		# 그렇지 않고 셀레니어 전략이 존재하면 셀레니어로 수행
+		elif is_selenior_needed:
+			# html = selenior.get_html_after_waiting_target_selector(URLS_ORIGINAL[i], *selenior_selectors)
+			# soup = get_soup_scenario_type.get(2)()
+			# print('get_soup_from_selenior 호출됨')
+			return Batch.get_soup_from_selenior(selenior, selenior_selectors, bs, url)
+		else: # Requestor + IpRotator 이용
+			# soup = get_soup_scenario_type.get(3)()
+			# print('get_soup_from_requestor 호출됨')
+			return Batch.get_soup_from_requestor(requestor, bs, url)
+		
+		return soup
+	
+	def __append_color_urls(self):
+		''' 
+		순회할 다른 색상 url을 찾은 경우:
+		현재 i가 '다시 색상 url을 추가하지 말아야 할 i범위'가 아니면 URLS에 추가
+		(URLS가 json 직접 응답 url이 아닌 것으로 가정)
+		'''
+		color_urls = self.sc.color_urls
+		if len(color_urls) >= 1 and self.batch_i not in self.do_not_append_color_urls:
+			print(f'\n추가 색상을 발견하여 추가 추출을 진행합니다 ( +{len(color_urls)}개 )\n')
+			# 현재 URLS i번째 직후 자리에 추가 색상 urls 삽입
+			self.URLS = Batch.insert_urls(self.URLS, self.batch_i, color_urls)
+			
+			# 새롭게 삽입한 색상 urls를 순회할 동안은 또 색상 urls를 추가로 URLS에 등록하지 않도록 '다시 색상 url을 추가하지 말아야 할 i범위'를 정의  
+			self.do_not_append_color_urls = range(self.batch_i + 1, self.batch_i + 1 + len(color_urls))
+			self.appended_color_urls_size += len(color_urls)
+
+			# TODO: 공통 타이틀에 영문 색상명도 추가하기? 복잡하니까 일단 넘어가자
+
+	@staticmethod
+	def insert_urls(urls, index, additional_urls):
+		'''
+		주어진 urls 목록의 index 자리에 additional_urls를 삽입하여 반환 
+		'''
+		return urls[:index + 1] + additional_urls + urls[index + 1:]
+	
+	def run_batch(self):
+		try:
+			self.batch()
+		except Exception as e:
+			# error_logger.error("An error occurred: %s", e)
+			raise e
+		finally:
+			if self.ip_rotator:
+				self.ip_rotator.shutdown_gateway()
+
 def batch():
 	'''
 	전체 협력 흐름을 조정하는 관리자 역할:
@@ -336,94 +822,106 @@ def batch():
 	14
 	'''
 	global ip_rotator
-	print('============= 프로그램 시작 =============\n')
-	site_input = input("사이트명을 입력해주세요(ex. 자포스, Zappos, Vans, vans): ")
-	sc = SiteClass()
-	SITE_OFFICIAL = sc.get_official_site_name(site_input) # TODO: 유효성 검사 및 루프 있어야 함
-	# 로깅 셋업
-	SITE_OFFICIAL_SNAKE = '_'.join(SITE_OFFICIAL.split(' '))
-	set_logging(logging.INFO, SITE_OFFICIAL_SNAKE)
 
-	sc.set_site(SITE_OFFICIAL) # TODO: get_official_site_name()이 띄어쓰기 없는 이름도 받도록 해야함
-	selenior_selectors = sc.get_selenium_wait_selectors()
+	is_size_type_deducible = False
+	is_direct_json_url_possible = False
+	is_selenior_needed = False
+	# => 기본은 단순 Requestor + Iprotator를 이용하는 요청
 	
-	# 사이즈 타입 입력받기(최초 입력 후 생략됨)
+	selenior = None
+	requestor = None
+	# ip_rotator = None
+	sc = None
+	google_sheeter = None
+	
 	size_type = None
-	while not size_type:
-		user_input_size_type = input('\n사이즈 타입을 설정해주세요(1.남성 신발 2.여성 신발 3.아동 신발 4.한국 사이즈로 변환하지 않음 5.남성/여성 신발 자동 변환): ')
-		if user_input_size_type not in ['1', '2', '3', '4', '5']:
-			print('유효한 옵션 번호가 아닙니다')
-			continue
-		else:
-			size_type = int(user_input_size_type)
+	selenior_selectors = None
 
-	# Requestor + IpRotator v.s. Selenior 분기
-	if size_type == 3 or len(selenior_selectors) == 0: 
-		# Requestor + IpRotator를 이용하는 경우: 
-		# 1) 사이즈 타입이 아동인 경우(사이즈 추출 불필요 + Requestor의 이미지 추출)
-		# 2) 셀레니어 전략이 설정되지 않은 경우 
-		ip_rotator = IpRotator()
-		requestor = Requestor(SITE_OFFICIAL, 0, ip_rotator) # TODO: 사실 Requestor는 SITE_OFFICIAL가 필요 없음(RequestAndSaveToPickle에게는 중요하지만)
-	else:  # Selenior를 이용
-		selenior = Selenior()
-	
-	google_sheeter = GoogleSheeter()
-	sheet_file_name = input('작업하고자 하는 구글 스프레드시트 문서 제목을 정확히 입력해주세요("대량등록 매크로야 힘내"를 선택하려면 그냥 엔터): ')
-	if not sheet_file_name.strip():
-		sheet_file_name = "대량등록 매크로야 힘내"
-	google_sheeter.set_document_and_worksheet(sheet_file_name)
+	def front_half():
+		nonlocal selenior
+		nonlocal requestor
+		global ip_rotator
+		nonlocal sc
+		nonlocal google_sheeter
+		nonlocal size_type
+		nonlocal selenior_selectors
 
-	if size_type == 3 or len(selenior_selectors) == 0: 
-		ip_rotator.open_gateway(SITE_OFFICIAL)
+		print('============= 프로그램 시작 =============\n')
+		site_input = input("사이트명을 입력해주세요(ex. 자포스, Zappos, Vans, vans): ")
+		sc = SiteClass()
+		SITE_OFFICIAL = sc.get_official_site_name(site_input) # TODO: 유효성 검사 및 루프 있어야 함
+		# 로깅 셋업
+		SITE_OFFICIAL_SNAKE = '_'.join(SITE_OFFICIAL.split(' '))
+		set_logging(logging.INFO, SITE_OFFICIAL_SNAKE)
+
+		sc.set_site(SITE_OFFICIAL) # TODO: get_official_site_name()이 띄어쓰기 없는 이름도 받도록 해야함
+		selenior_selectors = sc.get_selenium_wait_selectors() # sc.selenium_wait_strategy 직접 접근 막음. 훌륭함
+		is_size_type_deducible = sc.size_type_strategy is not None
+		# direct_json_url_transformer = sc.direct_json_url_transform_strategy # TODO: -> 무조건 호출하는 걸로, 해당 속성을 외부에서 직접 접근하는 것을 막음. 나름 해결 완료
+		
+		# 위의 세가지 플래그를 속성 그대로 접근해서 일단 사용해봄
+		is_size_type_deducible = sc.size_type_strategy is not None
+		is_direct_json_url_possible = sc.direct_json_url_transform_strategy is not None
+		is_selenior_needed = sc.selenium_wait_strategy is not None
+
+		# 사이즈 타입 입력받기(최초 입력 후 생략됨)
+		size_type = get_size_type_input(is_size_type_deducible, None)
+
+		# selenior = None
+		# requestor = None
+		# ip_rotator = None
+		# Requestor + IpRotator v.s. Selenior 분기
+		if not is_direct_json_url_possible and is_selenior_needed:
+			# 셀레니어를 생성하는 유일한 경우: direct_url변환은 불가능한데 셀레니어가 필요한 경우
+			selenior = Selenior()
+		else: 
+			ip_rotator = IpRotator()
+			requestor = Requestor(SITE_OFFICIAL, 0, ip_rotator) 
+
+		google_sheeter = GoogleSheeter()
+		sheet_file_name = input('작업하고자 하는 구글 스프레드시트 문서 제목을 정확히 입력해주세요("대량등록 매크로야 힘내"를 선택하려면 그냥 엔터): ')
+		if not sheet_file_name.strip():
+			sheet_file_name = "대량등록 매크로야 힘내"
+		google_sheeter.set_document_and_worksheet(sheet_file_name)
+
+		# if size_type == 3 or len(selenior_selectors) == 0: 
+		# 	ip_rotator.open_gateway(SITE_OFFICIAL)
+		# => 그냥 ip_rotator가 존재하면 게이트를 열도록 함
+		if ip_rotator is not None:
+			ip_rotator.open_gateway(SITE_OFFICIAL)
+	front_half()
 
 	batch_size = None
 	url_cell = None
 	target_row = None
 	# size_type = None
-	quit = False
-	while not quit:
+	# quit = False
+	while True:
 		# 배치 사이즈 입력받기(최초 입력 후 생략됨)
-		while not batch_size:
-			user_input_batch_size = input('\n한 번에 읽고 작업할 url 개수(배치 사이즈)를 입력해주세요: ')
-			if not user_input_batch_size.isdigit():
-				print('입력값이 숫자가 아닙니다')
-			else:
-				batch_size = int(user_input_batch_size)
+		batch_size = get_batch_size_input(batch_size)
 
 		# 읽어들일 url 행 입력받기
-		while True:
-			user_input_url_cell_num = input(f'\nurl이 적힌 시작 행 번호를 "10"과 같이 입력해주세요(종료를 원할 시 "q", 다음 {batch_size}개의 url로 자동 진행은 엔터): ') # TODO: '종료를 원할 시 q' 어디다 추가?
-			if user_input_url_cell_num.lower() == 'q': 
-				print('q를 입력하여 프로그램을 종료합니다.')
-				print('============= 프로그램 종료 =============')
-				quit = True
-				break
-			elif not user_input_url_cell_num.strip():
-				if not url_cell:
-					print('처음 url 행 번호는 지정해줘야 합니다.')
-					continue
-				url_cell = 'S' + str(int(url_cell[1:]) + batch_size)
-				break
-			else:
-				url_cell = 'S' + str(user_input_url_cell_num)
-				break
-		if quit:
-			continue # break ?
+		url_cell = get_start_url_cell_input(url_cell, batch_size)
+		if url_cell is None:
+			# 한 번 사용자 입력을 받았는데도 url_cell이 None으로 남아있다는 것은
+			# 사용자가 종료 시그널 'q'를 입력했다는 뜻 => outer while루프를 빠져나감
+			break
 
 		# 업로드 행 입력받기(최초 입력 후 생략됨)
-		while not target_row:
-			user_input_upload_row_num = input('\n업로드할 행 번호를 입력해주세요(기존 행을 아래로 밀어내고 삽입되는 방식으로 업로드됩니다): ')
-			if not user_input_upload_row_num.isdigit():
-				print('유효한 행 번호로 인식할 수 없습니다')
-			else:
-				target_row = int(user_input_upload_row_num)
+		target_row = get_initial_upload_row_input(target_row, batch_size)
+		
+		# url 읽어들이고 변환하기
+		URLS = google_sheeter.get_urls(url_cell, batch_size)
+		# URLS_ORIGINAL = google_sheeter.get_urls(url_cell, batch_size)
+		# URLS = transform_urls(URLS_ORIGINAL, is_direct_json_url_possible)
+		# def transform_urls(urls_original, is_direct_json_url_possible):
+		# 	''' urls_original 목록을 받아 'json 직접 추출'이 가능하다면
+		# 	해당 url로 변환한 결과를, 그렇지 않다면 원본 그대로를 반환 '''
+		# 	if is_direct_json_url_possible:
+		# 		return sc.replace_to_direct_json_urls(urls_original)
+		# 	else:
+		# 		return urls_original
 
-		URLS_ORIGINAL = google_sheeter.get_urls(url_cell, batch_size)
-		# print(f'\n{url_cell}부터 {batch_size}개를 읽어옵니다')
-		if getattr(sc, 'is_direct_json_extract_possible', False) == True:
-			URLS = sc.replace_to_direct_json_urls(URLS_ORIGINAL)
-		else:
-			URLS = URLS_ORIGINAL
 
 		# url별 데이터 추출
 		rows_data = []
@@ -431,30 +929,26 @@ def batch():
 		i = 0
 		do_not_append_color_urls = []
 		appended_color_urls_size = 0
+					
 		while i < len(URLS):
 			url = URLS[i]
 			print('\n-----------------------------')
 			print(f'{i + 1}/{len(URLS)} (S{str(int(url_cell[1:]) + i - appended_color_urls_size)}) 작업중...')
 			
-			if size_type == 3 or len(selenior_selectors) == 0: # Requestor + IpRotator 이용
-				response = requestor.request(url)
-				if 'application/json' in response.headers['Content-Type']:
-					soup = response.json()
-				else:
-					soup = bs(response.content, "html.parser")
-			else: # Selenior 이용
-				html = selenior.get_html_after_waiting_target_selector(URLS_ORIGINAL[i], *selenior_selectors)
-				soup = bs(html, "html.parser")
+			# 요청 --(버튼(2) + (3) 조합)-> soup
+			soup = get_soup(is_direct_json_url_possible, is_selenior_needed, url, sc, requestor, selenior, selenior_selectors, bs)
 
+			# soup --(사이즈 타입)--> row_data 
 			sc.set_all_data(soup, size_type)
 			row_data = sc.get_sheet_formatted_row_data(size_type)
-			if size_type == 3:
+			if size_type == 3: # 아동 신발 대표이미지 로컬에 저장
 				target_directory = os.path.join("C:", "Jubilee's Com", "Downloads")
 				# target_directory = os.path.join(ROOT_DIR, 'test')
 				title_image_file_name = requestor.download_image(row_data[-3], target_directory)
 				row_data[-3] = title_image_file_name
-			else:
-				row_data[-4] = URLS_ORIGINAL[i] # row 데이터에 원본 url 정보 추가
+			else: 
+				# row_data[-4] = URLS_ORIGINAL[i] # row 데이터에 원본 url 정보 추가
+				row_data[-4] = url # row 데이터에 원본 url 정보 추가
 			rows_data.append(row_data)
 
 			# 순회할 다른 색상 url을 찾은 경우:
@@ -463,13 +957,13 @@ def batch():
 			if len(sc.color_urls) >= 1 and i not in do_not_append_color_urls:
 				print(f'\n추가 색상을 발견하여 추가 추출을 진행합니다 ( +{len(sc.color_urls)}개 )\n')
 				# 현재 URLS i번째 직후 자리에 추가 색상 urls 삽입
-				URLS_ORIGINAL = URLS_ORIGINAL[:i + 1] + sc.color_urls + URLS_ORIGINAL[i + 1:]
-				if getattr(sc, 'is_direct_json_extract_possible', False) == True:
-					color_urls_transformed = sc.replace_to_direct_json_urls(sc.color_urls)
-				else:
-					color_urls_transformed = sc.color_urls
-				URLS = URLS[:i + 1] + color_urls_transformed + URLS[i + 1:]
-
+				URLS = insert_urls(URLS, i, sc.color_urls)
+				def insert_urls(urls, index, additional_urls):
+					'''
+					주어진 urls 목록의 index 자리에 additional_urls를 삽입하여 반환 
+					'''
+					return urls[:index + 1] + additional_urls + urls[index + 1:]
+				
 				# 새롭게 삽입한 색상 urls를 순회할 동안은 또 색상 urls를 추가로 URLS에 등록하지 않도록 '다시 색상 url을 추가하지 말아야 할 i범위'를 정의  
 				do_not_append_color_urls = range(i + 1, i + 1 + len(sc.color_urls))
 				appended_color_urls_size += len(sc.color_urls)
@@ -493,7 +987,9 @@ def run_batch():
 			ip_rotator.shutdown_gateway()
 
 def main():
-	run_batch()
+	# run_batch()
+	batch = Batch()
+	batch.run_batch()
 
 
 if __name__ == '__main__':

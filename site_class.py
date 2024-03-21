@@ -25,16 +25,6 @@
 get_selenium_wait_selectors(): 셀레니움을 위한 '기다림 selectors[]'가 설정돼있는 경우 반환
 '''
 
-import os 
-# from dotenv import load_dotenv
-# import json
-# import re
-
-# TODO: 각 extractors 임포트 삭제하기
-# import Vans_extractors as V
-# import Zappos_extractors as Z
-# import Lacoste_extractors as L
-# import Adidas_extractors as A
 from strategy_factory import StrategyFactory
 from extractors.extractors_interface import Translator
 from namer import Namer
@@ -48,11 +38,6 @@ from images import IMAGES
 '''
 ''' 예외 처리는 모두 __get() 메서드에서. self.속성 설정은 __set() 메서드에서 깔끔하게 '''
 ''' 예외 처리를 여기 SiteClass에서 하고 있으므로 '추출자'들에서는 하지 않도록 한다 '''
-
-# load_dotenv()
-# html_images_str = os.getenv("IMAGES")
-# html_images_str = re.sub(r'#.*?\n', '', html_images_str) # 주석 문자열 제거
-# html_images_dict = json.loads(html_images_str)
 
 
 class SiteClass():
@@ -111,12 +96,15 @@ class SiteClass():
 		]		
 
 	def set_site(self, site_official=None) -> None:
-		while not site_official: # None 혹은 '': 사용자 인풋 받음
-			# print(f'"{brand}"에 해당하는 브랜드를 찾을 수 없습니다')
-			site = input('브랜드(사이트)명을 입력하세요: ')
-			site_official = self.get_official_site_name(site)
-		print(f'"{site_official}"를(을) 대상으로 추출을 진행합니다')
+		''' 
+		공식 사이트명 site_official에 해당하는 전략을 셋업
+		- site_official은 사전에 get_official_site_name() 호출 후 반환받은 공식 사이트명이며,
+		- site_official이 인수로 주어지지 않으면 직접 인풋 요청 및 공식 사이트명 지정 후 전략을 셋업함 
+		'''
+		if site_official is None: 
+			site_official = self.get_official_site_name()
 		self.site_official = site_official
+		print(f'"{site_official}"를(을) 대상으로 추출을 진행합니다')
 
 		strategy_instances = StrategyFactory.create_strategies(site_official, self.strategy_class_names_all)
 		for i, instance in enumerate(strategy_instances):
@@ -126,65 +114,27 @@ class SiteClass():
 		if self.direct_json_url_transform_strategy is not None:
 			self.is_direct_json_extract_possible = True
 
-		# TODO: 삭제 요망
-		# if site_official == 'Vans':
-		# 	self.product_name_strategy = V.VansProductNameExtractor()
-		# 	self.price_strategy = V.VansPriceExtractor()
-		# 	# self.color_name_strategy = V.VansColorNameExtractor()
-		# 	# self.size_options_strategy = V.VansSizeOptionsExtractor()
-		# 	# self.size_transform_strategy = V.VansSizeTransformer()
-		# 	self.images_strategy = V.VansImagesExtractor()
-		# 	self.descriptions_strategy = V.VansDescriptionsExtractor()
-		# 	self.meta_data_strategy = V.VansMetaDataExtractor()
-		# elif site_official == 'Zappos':
-		# 	self.product_name_strategy = Z.ZapposProductNameExtractor()
-		# 	self.brand_name_strategy = Z.ZapposBrandNameExtractor()
-		# 	self.price_strategy = Z.ZapposPriceExtractor()
-		# 	self.images_strategy = Z.ZapposImagesExtractor()
-		# 	self.descriptions_strategy = Z.ZapposDescriptionsExtractor()
-		# 	self.size_options_strategy = Z.ZapposSizeOptionsExtractor()
-		# 	self.size_type_strategy = Z.ZapposSizeTypeExtractor()
-		# 	self.size_transform_strategy = Z.ZapposSizeTransformer()
-		# elif site_official == 'Fila':
-		# 	pass
-		# elif site_official == 'Lacoste':
-		# 	# self.product_name_strategy = L.LacosteProductNameExtractor()
-		# 	# self.price_strategy = L.LacostePriceExtractor()
-		# 	# self.images_strategy = L.LacosteImagesExtractor()
-		# 	# self.descriptions_strategy = L.LacosteDescriptionsExtractor()
-		# 	# self.size_options_strategy = L.LacosteSizeOptionsExtractor()
-		# 	# self.size_transform_strategy = L.LacosteSizeTransformer()
-		# 	# self.direct_json_url_transform_strategy = L.LacosteDirectJsonUrlTransformer()
-
-		# 	self.is_direct_json_extract_possible = True
-		# 	# self.selenium_wait_strategy = L.LacosteSeleniumWaitSelectors()
-
-		# 	strategy_instances = StrategyFactory.create_strategies(site_official, self.strategy_class_names_all)
-		# 	for i, instance in enumerate(strategy_instances):
-		# 		setattr(self, self.strategy_names_all[i], instance)
-
-		# elif site_official == 'Adidas':
-		# 	self.product_name_strategy = A.AdidasProductNameExtractor()
-		# 	self.price_strategy = A.AdidasPriceExtractor()
-		# 	self.images_strategy = A.AdidasImagesExtractor()
-		# 	self.descriptions_strategy = A.AdidasDescriptionsExtractor()
-		# 	self.size_options_strategy = A.AdidasSizeOptionsExtractor()
-		# 	self.size_transform_strategy = A.AdidasSizeTransformer()
-		# 	self.selenium_wait_strategy = A.AdidasSeleniumWaitSelectors()
-		# elif site_official == 'North Face':
-		# 	pass
-
-	def get_official_site_name(self, site_name):
-		'''"언더아머","Under Armour", "UnderArmour" 등의 한/영, 
-		띄어쓰기 유무, 대/소문자 유무로 인해 다양한 인풋을 모아 
-		하나의 공식 띄어쓰기 있는 영문 브랜드명으로 되돌림'''
+	def get_official_site_name(self, site_name=None):
 		'''
-		"Lauren Ralph Lauren", "Vans Kids" 같은 브랜드명이 
-		막추출 될 때 모든 걸 key로 등록할 수는 없다. 딕셔너리가
-		아니라 "'vans'가 포함된 인풋은 'Vans'로 반환"같은 메서드로
-		만들어야 함
+		"언더아머", "Under Armour", "UnderArmour" 등의 한/영, 
+		띄어쓰기 유무, 대/소문자 유무 등 다양한 인풋을 요청하고 
+		하나의 공식 띄어쓰기 있는 영문 브랜드명으로 변환 후 반환
 		'''
-		return Namer.get_official_site_name(site_name)
+		'''
+		최초 한 번 site_name으로 공식 브랜드명으로 변환 시도 후, 
+		유효하지 않은 site_name 대신 계속 인풋을 요청하여 변환 
+		'''
+		site_official = None
+		while not site_official: # None 혹은 '': 사용자 인풋 받음
+			# print(f'"{brand}"에 해당하는 브랜드를 찾을 수 없습니다')
+			# site = input('브랜드(사이트)명을 입력하세요: ')
+			if site_name is not None:
+				site_official = Namer.get_official_site_name(site_name)
+				site_name = None
+			else: 
+				site_input = input("브랜드(사이트)명을 입력해주세요(ex. 자포스, Zappos, Vans, vans): ")
+				site_official = Namer.get_official_site_name(site_input)
+		return site_official 
 	
 	def set_all_data(self, soup, size_type) -> None:
 		'''size_type이 3번 "키즈"인 경우 분기:
@@ -470,9 +420,10 @@ class SiteClass():
 		'''size_type이 3번 "키즈"인 경우 분기:
 		대표이미지 PC에 저장 후 상품명, 가격, 상세페이지, PC 파일명 대표이미지만 넣은 row data를 반환
 		그 외(1,2,4,5번)의 경우: 원래대로. 
+		-> 3(키즈)번 타입도 다른 옵션과 똑같이로 변경됨 
 		'''
-		if size_type == 3: # kids
-			return self.__make_kids_row_data()
+		# if size_type == 3: # kids
+		# 	return self.__make_kids_row_data()
 		return self.__make_row_data()
 	def __make_kids_row_data(self): 
 		'''
@@ -536,6 +487,19 @@ class SiteClass():
 				# error_logger.error('json 직접 요청이 가능한 사이트이나 url 변환에 실패하였습니다. 원본 url로 우회 추출을 진행합니다')
 				pass
 		return urls
+	def replace_to_direct_json_url(self, url):
+		'''
+		이 사이트의 direct_json_url_transform_strategy가 설정되어 있을 경우
+		원본 상품 페이지 url 하나를 '상품 메타데이터 json 직접 요청'이 
+		가능한 url로 변환한 단일 품목 반환,
+		설정되어 있지 않은(변환 불가능한 사이트) 경우 기존 url 그대로 반환
+		'''
+		if self.direct_json_url_transform_strategy:
+			try:
+				url = self.direct_json_url_transform_strategy.transform_url(url)
+			except Exception as e:
+				pass
+		return url
 
 
 '''

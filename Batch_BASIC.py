@@ -11,9 +11,9 @@ pip3.9 install beautifulsoup4
 pip3.9 install requests-ip-rotator
 pip3.9 install python-dotenv
 (dev) pip3.9 install pyinstaller
-(dev) pip3.9 install pytest
+pip3.9 install pytest
 pip3.9 install selenium
-(dev) pip3.9 install pytest-timeout
+pip3.9 install pytest-timeout
 '''
 # ==========================================
 #-*-coding: utf-8-*-
@@ -594,8 +594,10 @@ class Batch:
 		auto_extract_input = input('추가 색상 발견 시 일괄 추출을 진행하시겠습니까? (y/n) ')
 		if auto_extract_input == 'y':
 			self.auto_extract_color_urls = True
+			print('-> 추가 색상 발견 시 가능한 모든 색상 상품을 일괄 추출합니다')
 		else:
 			self.auto_extract_color_urls = False
+			print('-> 추가 색상 일괄 추출을 진행하지 않습니다')
 
 	def batch(self):
 		''' 사용자가 q를 입력할 때까지 batch_size개씩 url 추출 및 행 데이터 삽입 반복 '''

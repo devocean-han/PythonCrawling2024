@@ -16,13 +16,15 @@
 ### 2. 압축 푼 폴더로 이동
 
 cmd를 열고 다음 커맨드를 입력합니다:  
-(예를 들어 윈도우에서 "C:\Jubilee's Com\Downloads" 폴더에 "python crawling"이라는 폴더명으로 압출을 풀었다면: )  
+(예를 들어 윈도우에서 "C:\USERS\User\Downloads" 폴더에 "PythonCrawling2024-1.3"이라는 폴더명으로 압출을 풀었다면: )  
 ```sh
-cd "C:\Jubilee's Com\Downloads\python crawling"
+cd "C:\USERS\User\Downloads\PythonCrawling2024-1.3\PythonCrawling2024-1.3"
 ```
+(압축 파일 내부에 동일 이름의 폴더가 하나 더 있음)  
+
 명령어 실행 후 커서가 다음과 같이 깜빡이고 있어야 합니다.
 ```
-C:\Jubilee's Com\Downloads\python crawling> | <- 커서
+C:\USERS\User\Downloads\PythonCrawling2024-1.3\PythonCrawling2024-1.3> | <- 커서
 ```
 
 ### 3. PIP 패키지 설치
@@ -34,9 +36,12 @@ pip install -r requirements.txt
 
 (requirements.txt가 압축 푼 폴더에 들어있기 때문에 압축 푼 폴더로 이동해서 명령해줘야 했음)
 
-### 4. images.py 파일 수정 혹은 복사 덮어씌우기
+### 4. 필요 파일 수정 혹은 복사 덮어씌우기
 
-새 버전을 다운로드할 때마다 압축 푼 폴더 내의 images.py를 교체해줘야 합니다.
+새 버전을 다운로드할 때마다 압축 푼 폴더 내에 다음 파일들이 존재하도록 해줘야 합니다:
+1. `images.py` 파일 수정 혹은 복사 덮어씌우기
+2. `python-crawling-gspread-145332f402e3.json` 파일 복사 붙여넣기
+3. `.env` 파일 복사 붙여넣기
 <br>  
 
 

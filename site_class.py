@@ -103,12 +103,17 @@ class SiteClass():
 		'''
 		if site_official is None: 
 			site_official = self.get_official_site_name()
-		self.site_official = site_official
 		print(f'"{site_official}"를(을) 대상으로 추출을 진행합니다')
 
 		strategy_instances = StrategyFactory.create_strategies(site_official, self.strategy_class_names_all)
 		for i, instance in enumerate(strategy_instances):
 			setattr(self, self.strategy_names_all[i], instance)
+
+		# 전략 셋업까지는 'Korea', 'UK' 같은 국가명이 뒤에 붙은 채로 참조하고, 이후 row_data에 쓰기 위해 떼기
+		country_names = ['Korea']
+		if site_official.split(' ')[-1] in country_names:
+			site_official = ' '.join(site_official.split(' ')[:-1])
+		self.site_official = site_official
 		
 		# 'json 직접 응답 가능'한 사이트인 경우, url 변환이 가능함을 플래그로 표시
 		if self.direct_json_url_transform_strategy is not None:

@@ -9,10 +9,13 @@ class StrategyFactory:
         전략 인스턴스 목록을 반환 
         ex) create_strategy('Vans', ['PriceExtrator', 'SeleniumWaitSelector'])
             => [VansPriceExtractor(), None]
+        ex) create_strategy('North Face Korea', ['PriceExtrator', 'SeleniumWaitSelector'])
+            => [NorthFaceKoreaPriceExtractor(), None]
         '''
+        site_official_pascal = ''.join(site_official.split(' '))
         strategy_instances = []
         for name in strategy_names:
-            StrategyClass = STRATEGIES.get((site_official, site_official + name))
+            StrategyClass = STRATEGIES.get((site_official_pascal, site_official_pascal + name))
             if StrategyClass is None:
                 strategy_instances.append(None)
             else:

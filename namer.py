@@ -18,6 +18,7 @@ class Namer:
 
         '크록스': 'Crocs',
         '노스페이스': 'North Face',
+        '노스페이스 코리아': 'North Face Korea',
         '콜롬비아': 'Columbia',
         '살로몬': 'Salomon',
         '아식스': 'Asics',
@@ -74,6 +75,7 @@ class Namer:
 
         "Crocs": "https://www.crocs.com",
         "North Face": "https://www.thenorthface.com",
+        "North Face Korea": "https://www.thenorthfacekorea.co.kr/",
         'Columbia': "https://www.columbia.com",
         'Salomon': "https://www.salomon.com",
         'Asics': "https://www.asics.com",

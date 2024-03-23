@@ -146,8 +146,8 @@ class RequestAndSaveToPickle():
 	def load_webpage_response(self, url):
 		try:
 			filename = self.__generate_unique_filename(url)
-			print(filename)
 			file_path = os.path.join(self.SITE_PAGES_DIR, filename)				
+			print(file_path)
 			with open(file_path, 'rb') as f:
 				response = pickle.load(f)
 				if (response.status_code == 200):

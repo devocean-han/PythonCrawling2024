@@ -109,10 +109,6 @@ class SiteClass():
 		for i, instance in enumerate(strategy_instances):
 			setattr(self, self.strategy_names_all[i], instance)
 
-		# 전략 셋업까지는 'Korea', 'UK' 같은 국가명이 뒤에 붙은 채로 참조하고, 이후 row_data에 쓰기 위해 떼기
-		country_names = ['Korea']
-		if site_official.split(' ')[-1] in country_names:
-			site_official = ' '.join(site_official.split(' ')[:-1])
 		self.site_official = site_official
 		
 		# 'json 직접 응답 가능'한 사이트인 경우, url 변환이 가능함을 플래그로 표시
@@ -121,9 +117,9 @@ class SiteClass():
 
 	def get_official_site_name(self, site_name=None):
 		'''
-		"언더아머", "Under Armour", "UnderArmour" 등의 한/영, 
-		띄어쓰기 유무, 대/소문자 유무 등 다양한 인풋을 요청하고 
-		하나의 공식 띄어쓰기 있는 영문 브랜드명으로 변환 후 반환
+		한/영, 띄어쓰기 유무, 대/소문자 유무 등 다양한 인풋을 요청하고 
+		"Under Armour", "North Face Korea", "Vans" 등 하나의 공식
+		띄어쓰기 있는 영문 브랜드명으로 변환 후 반환
 		'''
 		'''
 		최초 한 번 site_name으로 공식 브랜드명으로 변환 시도 후, 
@@ -174,19 +170,30 @@ class SiteClass():
 		return product_name
 	def __get_brand_name(self, soup):
 		'''
-		site_official과 brand_name의 차이:
-		site_official: 정제된(official) 띄어쓰기 있는 영문 사이트명. ex) 자포스
-		brand_name: 띄어쓰기 있는 추출한 그대로 영문 브랜드명 ex) 자포스에서 반스
+		국가명 suffix를 뗀 공식 영문 브랜드명
+		- site_official과 brand_name의 차이:
+			- site_official: 정제된(official) 띄어쓰기 있는 영문 사이트명
+				ex) Zappos, North Face Korea
+			- brand_name: 추출하고 정제하고(official) 뒤의 국가명을 뗀 영문 브랜드명 
+				ex) 자포스에서 추출한 노스페이스
+					(The North Face -> [North Face, North Face Korea] 
+						-> "North Face Korea"선택 -> North Face)
 		'''
 		brand_name = '' 
 		if self.site_official:
 			brand_name = self.site_official
-		if self.brand_name_strategy: # '자포스'같은 사이트라 브랜드 추출자가 설정된 경우
-			try:
+		try:
+			if self.brand_name_strategy: # '자포스'같은 사이트라 브랜드 추출자가 설정된 경우
 				brand_name = self.brand_name_strategy.get_brand_name(soup)
-			except:
-				# error_logger.error('브랜드명을 찾지 못했습니다')
-				pass
+				# site_official 그대로라면 "North Face Korea -> North Face Korea"로, 자포스같은 종합 몰에서 추출했다면 "Northface/thenorthface/The North Face/등등 -> [North Face, North Face Korea]중에 고르기가 되니까, 
+				# 자포스같은 종합 몰이 아닌 한 이곳의 get_official_site_name이 인풋을 요구할 일은 없음
+				brand_name = self.get_official_site_name(brand_name)
+				# 'Korea', 'UK' 같이 뒤에 붙는 국가명을 이후 row_data에 쓰기 위해 떼기
+			if brand_name.split(' ')[-1] in Namer.SUFFIX_COUNTRY_NAMES:
+				brand_name = ' '.join(brand_name.split(' ')[:-1])
+		except:
+			# error_logger.error('브랜드명을 찾지 못했습니다')
+			pass
 		return brand_name
 
 	def __set_price(self, soup):

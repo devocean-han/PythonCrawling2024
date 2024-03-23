@@ -45,6 +45,7 @@ class SiteClass():
 		self.strategy_names_all = [
 			# 1. Product Name
 			'product_name_strategy',
+			'product_name_korean_strategy',
 			'brand_name_strategy',
 			# 2. Price
 			'price_strategy',
@@ -56,6 +57,7 @@ class SiteClass():
 			# 4. Images 
 			'images_strategy',
 			# 5. Descriptions
+			'description_images_strategy',
 			'descriptions_strategy',
 			# +6. Color
 			'color_name_strategy',
@@ -72,6 +74,7 @@ class SiteClass():
 		self.strategy_class_names_all = [
 			# 1. Product Name
 			'ProductNameExtractor',
+			'ProductNameKoreanExtractor',
 			'BrandNameExtractor',
 			# 2. Price
 			'PriceExtractor',
@@ -83,6 +86,7 @@ class SiteClass():
 			# 4. Images 
 			'ImagesExtractor',
 			# 5. Descriptions
+			'DescriptionImagesExtractor',
 			'DescriptionsExtractor',
 			# +6. Color
 			'ColorNameExtractor',
@@ -156,7 +160,7 @@ class SiteClass():
 		'''"한글브랜드 + 한글상품명 + 영문상품명" 조합의 상품 타이틀을 설정'''
 		self.product_name = self.__get_product_name(soup)
 		self.brand_name = self.__get_brand_name(soup)
-		self.product_name_ko = self.translator.translate(self.product_name)
+		self.product_name_ko = self.__get_product_name_ko(soup)
 		self.brand_name_ko = ''.join(self.translator.translate(self.brand_name).split(' '))
 		self.full_title = f'{self.brand_name_ko} {self.product_name_ko} {self.product_name}'
 	def __get_product_name(self, soup):
@@ -168,6 +172,21 @@ class SiteClass():
 				# error_logger.error('상품명을 찾지 못했습니다')				
 				pass
 		return product_name
+	def __get_product_name_ko(self, soup):
+		'''
+		공식 한글 상품명이 존재하면(=product_name_korean_strategy가 존재하면) 추출해서 반환,
+		그렇지 않으면 영문 상품명을 번역하여 반환
+		'''
+		product_name_ko = ''
+		try:
+			if self.product_name_korean_strategy:
+				product_name_ko = self.product_name_korean_strategy.get_product_name(soup)
+			else:
+				product_name_ko = self.translator.translate(self.product_name)
+		except:
+			# error_logger.error('공식 한글 상품명을 찾지 못했습니다')				
+			pass
+		return product_name_ko
 	def __get_brand_name(self, soup):
 		'''
 		국가명 suffix를 뗀 공식 영문 브랜드명
@@ -290,9 +309,9 @@ class SiteClass():
 
 	def __set_descriptions(self, soup):
 		'''[ [big,bold 설명], [기본 불렛형 설명] ] 형식으로 영문 상세설명을 설정
-		첫번째 요소는 비어있을 수 있음'''
-		descriptions = self.__get_descriptions(soup)
-		self.descriptions = descriptions
+		첫번째 요소(title)는 비어있을 수 있음'''
+		self.descriptions = self.__get_descriptions(soup)
+		self.description_images = self.__get_description_images(soup)
 	def __get_descriptions(self, soup):
 		descriptions = []
 		if self.descriptions_strategy:
@@ -302,6 +321,15 @@ class SiteClass():
 				# error_logger.error('상세설명 문구를 찾지 못했습니다')
 				pass
 		return descriptions
+	def __get_description_images(self, soup):
+		''' 텍스트로 된 상세설명 밑에 일괄로 붙일 이미지 상세설명 urls '''
+		description_images = []
+		if self.description_images_strategy:
+			try:
+				description_images = self.description_images_strategy.get_description_images(soup)
+			except:
+				pass
+		return description_images
 
 	def __set_color_name(self, soup): # TODO: __set_color_urls()를 따로 만들어야 할까?
 		'''색상명과 색상 url 목록을 설정
@@ -332,22 +360,20 @@ class SiteClass():
 	def __set_html(self):
 		self.html = self.__make_html()
 	def __make_html(self):
-		# .env에는 'site_official'과 일치하는 'brand_name'만 키로 들어 있으므로
-		# 안전을 위해 날 것의 추출물일 brand_name을 get_official_site_name()에 넣어
-		# 정제한다. (그래도 'Lauren Ralph Lauren'같은 경우는 'Polo Ralph Lauren'으로
-		# 매칭되는 키-값 쌍이 없어 결국 default 이미지 세트가 쓰일 수 있음)
-		brand_official = self.get_official_site_name(self.brand_name)
-		static_images = IMAGES.get(brand_official)
+		# images.py에는 'site_official' 중 국가명 suffix를 뺀 공식 사이트명만 키로 들어 있으므로
+		# 그 기준에 맞도록 정제한 brand_name을 images.py에서 검색하는 key로 사용
+		static_images = IMAGES.get(self.brand_name)
 		# 아예 유효하지 않은 브랜드명이면 디폴트 이미지를, 이미지를 적어넣지 않은 유효 브랜드명이면 자동으로 []를 호출해 아무 태그도 만들어 넣지 않음
 		if static_images is None: 
 			static_images = IMAGES.get('default', {})
 		static_images_top = self.__make_static_img_tags(static_images.get('상', []), 'top')
 		static_images_mid = self.__make_static_img_tags(static_images.get('중', []), 'mid')
 		static_images_end = self.__make_static_img_tags(static_images.get('하', []), 'end')
-		product_images = self.__make_product_img_tags()
+		product_images = self.__make_product_img_tags(self.images)
 		ko_title_descriptions = self.__make_ko_title_description_tags()
 		ko_bullet_descriptions = self.__make_ko_bullet_description_tags()
-		html = f'''<center style="width: 80%; margin: 0 auto;">
+		description_images = self.__make_product_img_tags(self.description_images)
+		html = f'''<center style="width: 90%; margin: 0 auto;">
 	{static_images_top}
 	{product_images}
 	<br/>
@@ -358,6 +384,7 @@ class SiteClass():
 	{ko_title_descriptions}
 	<br/>
 	{ko_bullet_descriptions}	
+	{description_images}
 	{static_images_end}
 	</center>
 	'''
@@ -397,16 +424,16 @@ class SiteClass():
 			# error_logger.error(f'{img_url}을 이미지 태그로 변환에 실패했습니다')
 			pass
 			return ''
-	def __make_product_img_tags(self):
+	def __make_product_img_tags(self, images):
 		'''상품 이미지 tag 전체를 한 문자열로 반환'''
 		tag_string = ''
-		for url in self.images:
+		for url in images:
 			tag_string += self.__make_product_img_tag(url) + '\n'
 		return tag_string
 	def __make_product_img_tag(self, img_url):
 		'''url로 상품 이미지 tag 하나를 만들어 문자열로 반환'''
 		try:
-			return f'<img src="{img_url}" alt="{self.brand_name_ko}" style="max-width: 100%; height: auto;">'
+			return f'<img src="{img_url}" alt="{self.brand_name_ko}" style="max-width: 100%; height: auto; margin-top: 3mm;">'
 		except:
 			# error_logger.error(f'{img_url}을 이미지 태그로 변환에 실패했습니다')
 			pass

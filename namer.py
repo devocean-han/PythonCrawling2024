@@ -65,6 +65,10 @@ class Namer:
     }
     SITES_OFFICIAL = set(site_name_ko_to_official_table.values())
     SITES_PASCAL = [''.join(name.split(' ')) for name in SITES_OFFICIAL]
+    SUFFIX_COUNTRY_NAMES = [
+        'Korea',
+        
+    ]
     site_name_to_IP_host_table = {
         # 1차
         "Zappos": "https://www.zappos.com",
@@ -140,14 +144,34 @@ class Namer:
         try:
             return Namer.site_name_ko_to_official_table[site_name]
         except KeyError:
-            n = site_name.lower()
-            n = ''.join(n.split(' '))
-            # 그냥 일단 '띄어쓰기없는소문자' 사이트명의 substring에 걸리는지 살피고, 2개 이상이 걸리면 그 때 해결하기
+            n_words = site_name.lower().split(' ')
+            n = ''.join(n_words)
             result = []
             for ko_name, site_official in Namer.site_name_ko_to_official_table.items():
-                lower_no_space_site_official = ''.join(site_official.lower().split(' '))
-                if n in ko_name or n in lower_no_space_site_official:
-                    result.append(site_official)
+                # 특수케이스2: '노페'를 알아듣게 만들기
+                #   => ko_name을 한 자씩 떼어서 만든 리스트에 site_name의 모든 한글 문자가 전부 존재하면, ok. (한글이라면) 2글자 이상을 요구할 것
+                if not n.islower(): 
+                # n이 '노페'와 같이 한글이면:
+                    if len(n) < 2: 
+                        print('한글은 두 글자 이상을 입력해주세요')
+                        return ''
+                    if all(char in ko_name for char in n):
+                        # '노페'의 각 글자가 모두 '노스페이스'에 존재한다면
+                        result.append(site_official)
+                # 특수케이스1: 'northface' -> ['North Face', 'North Face Korea']는 잘 찾지만,
+                #            'the north face' -> []가 역시나 위의 두 결과를 내도록 만들기 
+                # 마찬가지로 'Polo Ralph Lauren'/'LAUREN Ralph Lauren' 을 'Ralph Lauren'으로 매치시키기
+                #   => 일치하는 영문자가 연이어 3글자 이상이면 매치시키기. 혹은
+                #   => 띄어쓰기로 쪼개서 같은 단어가 하나라도 등장하면 매치시키기. 
+                else:
+                # n이 'the north face'와 같은 영문이면:
+                    # 띄어쓰기를 없앤 소문자끼리 'nor' < ['northface', 'northfacekorea'] 속함이 확인되면 매치시키고,
+                    lower_no_space_site_official = ''.join(site_official.lower().split(' '))
+                    if n in lower_no_space_site_official:
+                        result.append(site_official)
+                    # 또한 띄어쓰기를 고려하는 경우 ['the','north','face'] 안에 오피셜 ['north', 'face']가 모두/한 단어라도 존재하면 매치시킴
+                    elif sum(word in n_words for word in site_official.lower().split(' ')) >= 1:
+                        result.append(site_official)
 
             if len(result) == 0:
                 print(f'"{site_name}"에 해당하는 공식 사이트명을 찾지 못했습니다\n')

@@ -15,6 +15,15 @@ class ProductNameExtractor(ABC):
 			# logger.error(f'{soup}에서 상품명을 찾을 수 없었습니다')
 			return ''
 
+class ProductNameKoreanExtractor(ABC):
+	@abstractmethod
+	def __init__(self) -> None:
+		self.product_name_selector = ''
+	# @abstractmethod
+	def get_product_name(self, soup) -> str:
+		'''공식 한글 상품명 반환'''
+		pass
+
 class BrandNameExtractor(ABC):
 	@abstractmethod
 	def __init__(self) -> None:
@@ -275,6 +284,15 @@ class ImagesExtractor(ABC):
 	@abstractmethod
 	def get_images(self, soup) -> list[str]:
 		'''이미지 url 리스트를 반환 (사이즈 변환해서?)'''
+		pass
+
+class DescriptionImagesExtractor(ABC):
+	@abstractmethod
+	def __init__(self) -> None:
+		self.description_images_selectors = {}
+	@abstractmethod
+	def get_description_images(self, soup) -> list[str]:
+		'''	설명 이미지 url들을 한 리스트로 반환 '''
 		pass
 
 class DescriptionsExtractor(ABC):

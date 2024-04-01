@@ -1,6 +1,63 @@
 ''' 
-현재 가능한 사이트: 반스(Vans) 신발, 자포스, 라코스테, 아디다스
-추가 예정: 아식스
+사이트 이름 목록("✓" = 추출 가능한 사이트):
+	
+	#^ 1차
+✓	자포스(Zappos),
+	휠라(Fila),
+✓	반스(Vans),
+✓	라코스테(Lacoste),
+✓	아디다스(Adidas),
+
+	크록스(Crocs),
+	노스페이스(North Face),
+✓	노스페이스 코리아(North Face Korea),
+✓	노스페이스 영원(North Face Youngone),
+	콜롬비아(Columbia),
+	살로몬(Salomon),
+✓	아식스(Asics),
+	호카(Hoka),
+	퓨마(Puma),
+
+	#^ 1차(한국 주소로 자동 연결)
+	리복(Reebok),
+	타미힐피거(Tommy Hilfiger),
+	락포트(Rockport),
+	캘빈클라인(Calvin Klein),
+	게스(Guess),
+	랄프로렌(Ralph Lauren),
+    
+    #^ 2차
+	파타고니아(Patagonia),
+	메이시스(Macys),
+	갭(Gap),
+	갭팩토리(Gap Factory),
+	게스팩토리(Guess Factory),
+    
+    #^ 3차
+	스케쳐스(Skechers),
+	클락스(Clarks),
+	팀버랜드(Timberland),
+	리바이스(Levis),
+	챔피온(Champion),
+	케즈(Keds),
+	
+	#^ 4차
+	알도(Aldo),
+	뉴발란스(New Balance),
+	하바이아나스(Havaianas),
+	테바(Teva),
+	무스조(Moose Jaw),
+	룰루레몬(Lululemon),
+
+	#^ 5차
+	마시모두띠(Massimo Dutti),
+	카터스(Carters),
+	센스(Ssense),
+	미니로디니(Mini Rodini),
+
+	#^ (혹시 몰라) 추가
+	피엘라벤(Fjallraven),
+	
 '''
 # ==========================================
 '''
@@ -455,7 +512,7 @@ def get_soup(is_direct_json_url_possible, is_selenior_needed, url, sc, requestor
 
 def test_batch_class(monkeypatch):
 	# 인풋 사이트명, 사이즈 타입, 구글 문서명, 컬러urls 일괄 추출 여부, 배치 사이즈, url행, 쓸 행, 이어서 혹은 그만
-	fake_inputs = iter(['asics', '5', '대량등록 시트 테스트', 'n', '1', '320', '366', 'q'])
+	fake_inputs = iter(['facekorea', '4', '대량등록 시트 테스트', 'y', '1', '373', '378', 'q', 'q'])
 	monkeypatch.setattr('builtins.input', lambda _: next(fake_inputs))
 	batch = Batch()
 	batch.run_batch()

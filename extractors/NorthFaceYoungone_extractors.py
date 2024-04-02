@@ -249,7 +249,7 @@ class NorthFaceYoungoneColorUrlsExtractor(I.ColorUrlsExtractor):
         try:
             outer_div = soup.select_one(self.color_urls_selectors['outer_div'])
             color_as = outer_div.select('div.variation-color.selectable:not(.selected) a')
-            color_urls = ['https://www.thenorthfaceYoungone.co.kr' + a.get('href') for a in color_as]
+            color_urls = ['https://www.youngonestore.co.kr' + a.get('href') for a in color_as]
             return color_urls
         except Exception as e:
             logger.error(e)

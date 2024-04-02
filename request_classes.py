@@ -301,8 +301,8 @@ class Requestor():
 			except Exception as e:
 				print(f'알 수 없는 에러 발생: {e}')
 				raise
-			finally:
-				response_size = len(response.content)
+			# finally:
+				# response_size = len(response.content) # 에러가 발생할 때 response를 미리 참조했다고 또 에러 발생하므로 주석처리함
 				# print(f'응답 데이터 크기: {response_size} bytes')
 				# print()
 		

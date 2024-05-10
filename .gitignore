@@ -8,6 +8,8 @@ dev_source_codes/
 log/
 tests/
 *.진행사항.md
+.vscode/ 
+#(파이썬 디버그용 launch.json 파일 포함)
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

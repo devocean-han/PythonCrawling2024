@@ -629,7 +629,7 @@ class Batch:
 		# Requestor + IpRotator v.s. Selenior 분기
 		if not self.is_direct_json_url_possible and self.is_selenior_needed:
 			# 셀레니어를 생성하는 유일한 경우: direct_url변환은 불가능한데 셀레니어가 필요한 경우
-			self.selenior = Selenior(self.SITE_OFFICIAL)
+			self.selenior = Selenior()
 		else: 
 			self.ip_rotator = IpRotator()
 			self.requestor = Requestor(self.SITE_OFFICIAL, 0, self.ip_rotator) 

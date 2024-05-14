@@ -26,6 +26,8 @@ class Namer:
         '호카': 'Hoka',
         '퓨마': 'Puma',
 
+        '에이비씨 그랜드 스테이지': 'Abc Grand Stage',
+
         '리복': 'Reebok',
         '타미힐피거': 'Tommy Hilfiger',
         '락포트': 'Rockport',
@@ -62,7 +64,7 @@ class Namer:
 
         # 내가 추가
         '피엘라벤': 'Fjallraven',
-        
+        '나이키': 'Nike',
     }
     SITES_OFFICIAL = set(site_name_ko_to_official_table.values())
     SITES_PASCAL = [''.join(name.split(' ')) for name in SITES_OFFICIAL]
@@ -87,6 +89,8 @@ class Namer:
         'Asics': "https://www.asics.com",
         'Hoka': "https://www.hoka.com",
         'Puma': "https://us.puma.com",
+
+        'Abc Grand Stage': "https://grandstage.a-rt.com",
         
         # 한국주소로 자동 연결되는 곳 (우회 이전에는 US 접속 불가능)
         'Reebok': "https://www.reebok.com",
@@ -128,6 +132,7 @@ class Namer:
 
         # 내가 추가
         'Fjallraven': "https://www.fjallraven.com",
+        'Nike': "",
     }
 
     @staticmethod

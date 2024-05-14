@@ -18,6 +18,8 @@
 	호카(Hoka),
 	퓨마(Puma),
 
+✓(진행중)	에이비씨 그랜드 스테이지(Abc Grand Stage),
+
 	#^ 1차(한국 주소로 자동 연결)
 	리복(Reebok),
 	타미힐피거(Tommy Hilfiger),
@@ -57,7 +59,7 @@
 
 	#^ (혹시 몰라) 추가
 	피엘라벤(Fjallraven),
-	
+	나이키(Nike)
 '''
 # ==========================================
 '''
@@ -176,7 +178,7 @@ class IpRotator():
 class GoogleSheeter():
 	''' 구글 시트 연락자
 	__init__()
-	set_document_and_worksheet(sheet_file_name='대량등록 시트 테스트')
+	set_document_and_worksheet(sheet_file_name='대량등록 매크로야 힘내')
 	get_urls(start_cell, batch_size)
 	add_rows(target_start_row, data)
 	'''
@@ -188,12 +190,13 @@ class GoogleSheeter():
 		self.sh = '' # 작업할 문서
 		self.worksheet = '' # 작업할 시트
 
-	def set_document_and_worksheet(self, sheet_file_name='대량등록 시트 테스트'):
+	def set_document_and_worksheet(self, sheet_file_name='대량등록 매크로야 힘내'):
 		self.sheet_file_name = sheet_file_name
 		while True:
 			try:
 				self.sh = self.google_client.open(self.sheet_file_name)
 				self.__set_worksheet(0)
+				print(f'"{sheet_file_name}"의 첫 번째 시트와 연결됩니다')
 				break
 			except:
 				self.sheet_file_name = input('존재하지 않는 스프레드시트입니다. 다시 입력해주세요: ')
@@ -512,7 +515,7 @@ def get_soup(is_direct_json_url_possible, is_selenior_needed, url, sc, requestor
 
 def test_batch_class(monkeypatch):
 	# 인풋 사이트명, 사이즈 타입, 구글 문서명, 컬러urls 일괄 추출 여부, 배치 사이즈, url행, 쓸 행, 이어서 혹은 그만
-	fake_inputs = iter(['facekorea', '4', '대량등록 시트 테스트', 'y', '1', '373', '378', 'q', 'q'])
+	fake_inputs = iter(['abc', '4', '대량등록 시트 테스트', 'y', '1', '447', '458', 'q', 'q'])
 	monkeypatch.setattr('builtins.input', lambda _: next(fake_inputs))
 	batch = Batch()
 	batch.run_batch()

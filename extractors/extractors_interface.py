@@ -342,6 +342,10 @@ class SeleniumWaitSelectors(ABC):
 	def get_selectors(self) -> list[str]:
 		''' 셀레니움을 이용한 html 추출용 CSS selectors를 반환
 		(n번의 기다림+클릭 후 마지막 요소를 '타겟 기다림 태그'로 가지는)
+		이 추출자가 존재하면 (거의)무조건 Selenium을 이용하고,
+		이 한 번의 메서드 호출 후 반환된 html로 전체 soup 추출을 
+		진행하게 되므로, 로딩에 가장 오래 걸리는 '타겟 기다림 태그'를
+		신중히 지정해야함
 		'''
 		pass
 

@@ -61,17 +61,27 @@ class AbcGrandStageProductNameExtractor(I.ProductNameExtractor):
 			return ''
 
 
+# TODO: 한글 사이트이므로 images.py에서 조회할 영문 브랜드명도 추출해야함?
 # 셀레니움 html에서 추출
 @export_strategy(SITE_OFFICIAL)
 class AbcGrandStageBrandNameExtractor(I.BrandNameExtractor):
 	def __init__(self) -> None:
 		self.brand_name_selector = 'div.detail-box-header input#brandName'
+		self.eng_brand_name_selectors = {
+			'from_상세설명': 'tbody#product-detail-notice td', # 자식 중 몇 번째 th 동생인지 모를 '제조사', 
+			'from_dialogContainer26': '#dialogQnaApply span.prod-brand', #.text
+		}
 	
 	def get_brand_name(self, soup) -> str:
-		''' Abc Grand Stage는 한국 사이트이므로 특별히 '한글' 브랜드명을 반환 '''
+		''' Abc Grand Stage는 한국 사이트이므로 특별히 '한글' 브랜드명을 추출
+			하지만 영문 브랜드명을 굳이 추출해서 반환 '''
 		try:
+			# 공식 한글 브랜드명 추출
 			brand_name = soup.select_one(self.brand_name_selector).get('value').strip()
-			return brand_name
+			# 공식 영문 브랜드명 추출
+			brand_name_eng_span = soup.select_one(self.eng_brand_name_selectors['from_dialogContainer26'])
+			brand_name_eng = brand_name_eng_span.text.strip()
+			return brand_name_eng
 		except Exception as e:
 			logger.error(e)
 			return ''
@@ -157,10 +167,6 @@ class AbcGrandStageDescriptionImagesExtractor(I.DescriptionImagesExtractor):
 
 
 # 셀레니움 html에서 추출
-# TODO: 옷의 경우 '사이즈 변환표'를, 모자 같은 경우 '치수' 항목을 가져와야만 할 것 같은데...
-# '사이즈 변환표'의 경우 방법; 
-# '치수'의 경우 방법: 추가하기 방법. 뭐가 있을지 전부 짐작해야 추가할 수 있다는 단점이 있음
-# 	=> 상품정보제공 고시에서 항목을 전부 가져오고, 그 중 [소재, 치수/굽높이, 제조자, 제조국, 소재별 관리방법, ]이면 통과시킨다
 @export_strategy(SITE_OFFICIAL)
 class AbcGrandStageDescriptionsExtractor(I.DescriptionsExtractor):
 	def __init__(self) -> None:

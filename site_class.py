@@ -197,21 +197,28 @@ class SiteClass():
 				ex) 자포스에서 추출한 노스페이스
 					(The North Face -> [North Face, North Face Korea] 
 						-> "North Face Korea"선택 -> North Face)
+				- 만약 브랜드 추출자가 존재하는 사이트라면, 이 때의 brand_name은 
+					추출한 그대로로 두고 정제하지 않음. images.py에서의 브랜드명을
+					사이트에서 추출한 날 것의 영문 brand_name과 동일하게 맞추는 역할은
+					사용자에게 맡긴다고 출력문으로 안내하도록 한다.
 		'''
 		brand_name = '' 
 		if self.site_official:
 			brand_name = self.site_official
 		try:
 			if self.brand_name_strategy: # '자포스'같은 사이트라 브랜드 추출자가 설정된 경우
-				brand_name = self.brand_name_strategy.get_brand_name(soup)
-				# site_official 그대로라면 "North Face Korea -> North Face Korea"로, 자포스같은 종합 몰에서 추출했다면 "Northface/thenorthface/The North Face/등등 -> [North Face, North Face Korea]중에 고르기가 되니까, 
-				# 자포스같은 종합 몰이 아닌 한 이곳의 get_official_site_name이 인풋을 요구할 일은 없음
-				brand_name = self.get_official_site_name(brand_name)
-				# 'Korea', 'UK' 같이 뒤에 붙는 국가명을 이후 row_data에 쓰기 위해 떼기
-			if brand_name.split(' ')[-1] in Namer.SUFFIX_COUNTRY_NAMES:
-				brand_name = ' '.join(brand_name.split(' ')[:-1])
+				brand_name = self.brand_name_strategy.get_brand_name(soup).title()
+				# => 추출한 그대로의 영문 브랜드명으로 놔두고 밑의 정제작업을 삭제함(임시)
+				
+			# 	# site_official 그대로라면 "North Face Korea -> North Face Korea"로, 자포스같은 종합 몰에서 추출했다면 "Northface/thenorthface/The North Face/등등 -> [North Face, North Face Korea]중에 고르기가 되니까, 
+			# 	# 자포스같은 종합 몰이 아닌 한 이곳의 get_official_site_name이 인풋을 요구할 일은 없음
+			# 	brand_name = self.get_official_site_name(brand_name)
+			# 	# 'Korea', 'UK' 같이 뒤에 붙는 국가명을 이후 row_data에 쓰기 위해 떼기
+			# if brand_name.split(' ')[-1] in Namer.SUFFIX_COUNTRY_NAMES:
+			# 	brand_name = ' '.join(brand_name.split(' ')[:-1])
 		except:
 			# error_logger.error('브랜드명을 찾지 못했습니다')
+			print('브랜드명을 찾지 못했으나 추출을 계속합니다')
 			pass
 		return brand_name
 
@@ -366,6 +373,7 @@ class SiteClass():
 		# 아예 유효하지 않은 브랜드명이면 디폴트 이미지를, 이미지를 적어넣지 않은 유효 브랜드명이면 자동으로 []를 호출해 아무 태그도 만들어 넣지 않음
 		if static_images is None: 
 			static_images = IMAGES.get('default', {})
+			print(f'추출한 브랜드명 "{self.brand_name}"과 매칭되는 이미지 타이틀을 찾지 못하여 "default" 이미지를 대신 사용합니다')
 		static_images_top = self.__make_static_img_tags(static_images.get('상', []), 'top')
 		static_images_mid = self.__make_static_img_tags(static_images.get('중', []), 'mid')
 		static_images_end = self.__make_static_img_tags(static_images.get('하', []), 'end')
